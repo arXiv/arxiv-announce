@@ -1,0 +1,12 @@
+{
+    "specversion": "1.0",
+    "type": "com.example.test",
+    "source": "/my/event/source",
+    "id": "1234567890",
+    "data": {
+      "message": {
+        "data": "eyJmb28iOiJiYXIifQ=="
+      }
+    }
+  }
+  
