@@ -1,0 +1,6 @@
+python-json-logger
+functions-framework
+google-cloud-storage
+requests
+google-auth
+git+https://github.com/arXiv/arxiv-base.git@3e2d405ad50be967b078f054ed82998513a9da81#egg=gcp-service-auth&subdirectory=gcp/service_auth
