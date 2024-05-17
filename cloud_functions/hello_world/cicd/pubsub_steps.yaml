@@ -12,7 +12,8 @@ steps:
            '--trigger-topic', '${_PUBSUB_NAME}',
            '--entry-point', '${_ENTRY_POINT}',
            '--service-account', '${_RUN_ACCOUNT}',
-           '--env-vars-file', '${_ROOTDIR}/cicd/env.${_FUNCTION_NAME}.${_PROJECT_ID}.yaml'
+           '--env-vars-file', '${_ROOTDIR}/cicd/env.${_FUNCTION_NAME}.${_PROJECT_ID}.yaml',
+           '--allow-unauthenticated'
            ]
 # Without this, build does not proceed
 options:
