@@ -44,3 +44,14 @@ note that the data is base 64 encoded, and that return values from cloud functio
       }'
     
  ```
+
+ # deploying
+  in GCP your function will need a trigger to trigger the build of the function on deploy, a service account to run the build, a service account to run the function, and well as a pubsub subscriber (or some other event) to drive it. Each function needs its own subscriber
+
+  the dev project has a version of each of these for hello_world that can be used as a model. 
+  build trigger: deploy-hello-world-cfunction
+  build service account: cloudbuild-sa@arxiv-development.iam.gserviceaccount.com which you can use for all cloud builds
+  function run account:announce-sa@arxiv-development.iam.gserviceaccount.com which can also be used for other function in this repositroy, or you can make your own if you want something special
+  pubsub subscriber: eventarc-us-central1-hello-world-932641-sub-590 (created automatically by the cloud build)
+
+  you can test this whole setup by publishing a message like {"foo": "magic"} in the testing topic
