@@ -1,2 +1,2 @@
 functions-framework
-requests
+arxiv-base @ git+https://github.com/arXiv/arxiv-base.git@e212aa3ba77860237690a32a860ce9acd90ac276#egg=arxiv_base
