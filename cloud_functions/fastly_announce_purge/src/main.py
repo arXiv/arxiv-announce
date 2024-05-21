@@ -1,6 +1,7 @@
 import json
 import base64
 import logging
+import os
 
 import functions_framework
 from cloudevents.http import CloudEvent
@@ -20,8 +21,15 @@ def purge_for_announce(cloud_event: CloudEvent):
     data=json.loads(base64.b64decode(cloud_event.get_data()['message']['data']).decode())
     event= data.get("event")
     if event =="announcement_complete":
-        purge_fastly_keys("announce")
-        purge_fastly_keys("announce","rss.arxiv.org")
-        purge_fastly_keys("announce","export.arxiv.org")
-        purge_fastly_keys("announce", "browse.dev.arxiv.org")
+        enviroment = os.environ.get('ENVIROMENT')
+        if enviroment == "PRODUCTION":
+            purge_fastly_keys("announce")
+            purge_fastly_keys("announce","rss.arxiv.org")
+            purge_fastly_keys("announce","export.arxiv.org")
+            logger.info("Purged announcement key for production")
+        elif enviroment == "DEVELOPMENT":
+            purge_fastly_keys("announce", "browse.dev.arxiv.org")
+            logger.info("Purged announcement key for devlopment")
+        else:
+            logger.warning(f"Announcement event caught, but no enviroment to purge cache. ENVIROMENT: {enviroment}")
 
