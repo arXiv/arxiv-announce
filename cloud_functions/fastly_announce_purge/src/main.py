@@ -10,8 +10,6 @@ from arxiv.integration.fastly.purge import purge_fastly_keys
 
 logger = logging.getLogger(__name__)
 
-
-
 @functions_framework.cloud_event
 def purge_for_announce(cloud_event: CloudEvent):
     """ this function runs at the end of announce, purges all things from fastly that needs to be purged for the new announcement.

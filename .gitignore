@@ -160,3 +160,4 @@ cython_debug/
 #.idea/
 cloud_functions/hello_world/.python-version
 cloud_functions/fastly_announce_purge/src/.python-version
+cloud_functions/fastly_announce_purge/.python-version
