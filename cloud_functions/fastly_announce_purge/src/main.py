@@ -27,7 +27,7 @@ def purge_for_announce(cloud_event: CloudEvent):
             logger.info("Purged announcement key for production")
         elif environment == "DEVELOPMENT":
             purge_fastly_keys("announce", "browse.dev.arxiv.org")
-            logger.info("Purged announcement key for devlopment")
+            logger.info("Purged announcement key for development")
         else:
             logger.warning(f"Announcement event caught, but no environment to purge cache. ENVIRONMENT: {environment}")
 
