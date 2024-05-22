@@ -30,20 +30,20 @@ class TestAnnouncePurge(unittest.TestCase):
     other_cloud_event = CloudEvent({'type': 'test', 'source': 'test'}, mock_data2)
 
     @patch('main.purge_fastly_keys')
-    def test_nonsense_enviroment(self, MockPurgeFun):
-        with patch.dict('os.environ', {'ENVIROMENT': 'Nonsense'}):
+    def test_nonsense_environment(self, MockPurgeFun):
+        with patch.dict('os.environ', {'ENVIRONMENT': 'Nonsense'}):
             purge_for_announce(self.announce_cloud_event)
             MockPurgeFun.assert_not_called()
 
     @patch('main.purge_fastly_keys')
     def test_wrong_event(self, MockPurgeFun):
-        with patch.dict('os.environ', {'ENVIROMENT': 'PRODUCTION'}):
+        with patch.dict('os.environ', {'ENVIRONMENT': 'PRODUCTION'}):
             purge_for_announce(self.other_cloud_event)
             MockPurgeFun.assert_not_called()
 
     @patch('main.purge_fastly_keys')
     def test_production_calls(self, MockPurgeFun):
-        with patch.dict('os.environ', {'ENVIROMENT': 'PRODUCTION'}):
+        with patch.dict('os.environ', {'ENVIRONMENT': 'PRODUCTION'}):
             purge_for_announce(self.announce_cloud_event)
             MockPurgeFun.assert_has_calls(self.production_calls, any_order=True)
             for call in self.dev_calls:
@@ -51,7 +51,7 @@ class TestAnnouncePurge(unittest.TestCase):
             
     @patch('main.purge_fastly_keys')
     def test_development_calls(self, MockPurgeFun):
-        with patch.dict('os.environ', {'ENVIROMENT': 'DEVELOPMENT'}):
+        with patch.dict('os.environ', {'ENVIRONMENT': 'DEVELOPMENT'}):
             purge_for_announce(self.announce_cloud_event)
             MockPurgeFun.assert_has_calls(self.dev_calls, any_order=True)
             for call in self.production_calls:
