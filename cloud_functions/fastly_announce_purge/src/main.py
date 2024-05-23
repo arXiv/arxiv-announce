@@ -1,14 +1,25 @@
 import json
 import base64
-import logging
 import os
+
+import logging
+from google.cloud.logging import Client
+from google.cloud.logging.handlers import CloudLoggingHandler
 
 import functions_framework
 from cloudevents.http import CloudEvent
 
 from arxiv.integration.fastly.purge import purge_fastly_keys
 
+#cloud function logging setup
+handler = CloudLoggingHandler(Client())
+functions_framework.setup_logging()
 logger = logging.getLogger(__name__)
+log_level_str = os.getenv('LOG_LEVEL', 'INFO')
+log_level = getattr(logging, log_level_str.upper(), logging.INFO)
+logger.setLevel(log_level)
+logger.addHandler(handler)
+
 
 @functions_framework.cloud_event
 def purge_for_announce(cloud_event: CloudEvent):
