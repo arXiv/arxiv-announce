@@ -10,12 +10,12 @@ from main import purge_all_for_paper
 class TestAnnouncePurge(unittest.TestCase):
     mock_data1 = {
         "message": {
-            "data": base64.b64encode(b'{"paper-id": "1205.1234", "old_categories": "Not specified"}')
+            "data": base64.b64encode(b'{"paper_id": "1205.1234", "old_categories": "Not specified"}')
         }
     }
     mock_data2 = {
         "message": {
-            "data": base64.b64encode(b'{"paper-id": "1205.1234", "old_categories": "hep-lat cs.NA"}')
+            "data": base64.b64encode(b'{"paper_id": "1205.1234", "old_categories": "hep-lat cs.NA"}')
         }
     }
     non_cat_cloud_event = CloudEvent({'type': 'test', 'source': 'test'}, mock_data1)

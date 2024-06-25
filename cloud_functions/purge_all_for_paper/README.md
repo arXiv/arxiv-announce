@@ -23,9 +23,8 @@ to run
 ` functions-framework --target=purge_all_for_paper --signature-type=cloudevent `
 
 message data options:
-1008.3222
-{"paper-id":"1008.3222", "old_categories":"Not specified"} : "eyJwYXBlci1pZCI6IjEwMDguMzIyMiIsICJvbGRfY2F0ZWdvcmllcyI6Ik5vdCBzcGVjaWZpZWQifQ=="
-{"paper-id":"1008.3222", "old_categories":"eess.SY hep-lat"} : "eyJwYXBlci1pZCI6IjEwMDguMzIyMiIsICJvbGRfY2F0ZWdvcmllcyI6ImVlc3MuU1kgaGVwLWxhdCJ9"
+{"paper_id":"1008.3222", "old_categories":"Not specified"} : "eyJwYXBlcl9pZCI6IjEwMDguMzIyMiIsICJvbGRfY2F0ZWdvcmllcyI6Ik5vdCBzcGVjaWZpZWQifQ=="
+{"paper_id":"1008.3222", "old_categories":"eess.SY hep-lat"} : "eyJwYXBlcl9pZCI6IjEwMDguMzIyMiIsICJvbGRfY2F0ZWdvcmllcyI6ImVlc3MuU1kgaGVwLWxhdCJ9"
 
 to trigger run a curl command with a cloud event, heres an example you can use: 
 note that the data is base 64 encoded, and that return values from cloud functions seem to be useless
@@ -40,7 +39,7 @@ note that the data is base 64 encoded, and that return values from cloud functio
   -H "ce-source: //pubsub.googleapis.com/projects/MY-PROJECT/topics/MY-TOPIC" \
   -d '{
         "message": {
-          "data": "eyJwYXBlci1pZCI6IjEwMDguMzIyMiIsICJvbGRfY2F0ZWdvcmllcyI6Ik5vdCBzcGVjaWZpZWQifQ==",
+          "data": "eyJwYXBlcl9pZCI6IjEwMDguMzIyMiIsICJvbGRfY2F0ZWdvcmllcyI6ImVlc3MuU1kgaGVwLWxhdCJ9",
           "attributes": {
              "attr1":"attr1-value"
           }

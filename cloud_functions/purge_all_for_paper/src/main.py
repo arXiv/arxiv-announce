@@ -25,11 +25,10 @@ logger.addHandler(handler)
 def purge_all_for_paper(cloud_event: CloudEvent):
     """ this function purges everything to do with a particular paper, inlcuding list pages it is on.
     old_cats is used in case fo a category change to also refresh any lists the paper was removed from, and any year tallies its been added to or removed from
-    functions-framework --target=purge_all_for_paper --signature-type=cloudevent
     """
 
     data=json.loads(base64.b64decode(cloud_event.get_data()['message']['data']).decode())
-    paper= data.get("paper-id")
+    paper= data.get("paper_id")
     old_cats= data.get("old_categories")
     if os.environ.get('ENVIRONMENT') == "PRODUCTION":
         if old_cats=="Not specified":
