@@ -4,7 +4,7 @@ the object changed in the bucket.
 Env vars:
 
 - FASTLY_API_TOKEN required, configure from secrets
-- ALWAYS_SOFT_PURGE optional, defaults off 1 or 0
+- ALWAYS_SOFT_PURGE optional, defaults off, 1 or 0
 - DRY_RUN optional, defaults to off, 1 or 0
 
 Deploy with something like:
@@ -34,13 +34,12 @@ from typing import Optional
 import os
 
 from cloudevents.http import CloudEvent
-
 import functions_framework
+from google.api_core import retry
 
-import requests
 from arxiv.identifier import Identifier, STANDARD as MODERN_ID, _archive, _category
 from arxiv.integration.fastly.purge import purge_cache_for_paper
-from google.api_core import retry
+
 
 functions_framework.setup_logging()
 import logging
@@ -73,9 +72,9 @@ class Invalidator:
             return
 
         if self.always_soft_purge or soft_purge:
-            purge_fastly_keys("announce", soft_purge=True)
+            purge_cache_for_paper("announce", soft_purge=True)
         else:
-            purge_fastly_keys("announce", soft_purge=False)
+            purge_cache_for_paper("announce", soft_purge=False)
 
 
 def invalidate_for_gs_change(bucket: str, key: str, invalidator: Invalidator) -> None:
