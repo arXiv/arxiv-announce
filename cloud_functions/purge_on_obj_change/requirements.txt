@@ -1,6 +1,5 @@
 functions-framework
-requests
-arxiv-base @ git+https://github.com/arXiv/arxiv-base.git@b789628a16d058bb799bbfb28051aac65c6e429c
+arxiv-base @ git+https://github.com/arXiv/arxiv-base.git@c3568bb
 google.api_core
 
 
