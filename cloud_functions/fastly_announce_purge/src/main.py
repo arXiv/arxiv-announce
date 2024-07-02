@@ -67,7 +67,7 @@ def _purge_announced_papers():
     elif environment == "DEVELOPMENT":
         purge_fastly_keys(keys, "browse.dev.arxiv.org")
     elif environment == "TESTING":
-        logger.info(f"In TESTING enviroment. Would have purged keys: {keys}")
+        logger.info(f"In TESTING enviroment. Would have purged keys {len(keys)}: {keys}\nAbove keys ({len(keys)}) not purged, in TESTING enviroment.")
     return
 
 def _get_days_announcements()-> List[Tuple[str, int, str, str, str]]:
