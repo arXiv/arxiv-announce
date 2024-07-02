@@ -30,7 +30,7 @@ class TestAnnouncePurge(unittest.TestCase):
     other_cloud_event = CloudEvent({'type': 'test', 'source': 'test'}, mock_data2)
 
     @patch('main.purge_fastly_keys')
-    @patch('main.purge_announced_papers')
+    @patch('main._purge_announced_papers')
     def test_nonsense_environment(self, _, MockPurgeFun):
         with patch.dict('os.environ', {'ENVIRONMENT': 'Nonsense'}):
             purge_for_announce(self.announce_cloud_event)
@@ -43,7 +43,7 @@ class TestAnnouncePurge(unittest.TestCase):
             MockPurgeFun.assert_not_called()
 
     @patch('main.purge_fastly_keys')
-    @patch('main.purge_announced_papers')
+    @patch('main._purge_announced_papers')
     def test_production_calls(self,_, MockPurgeFun):
         with patch.dict('os.environ', {'ENVIRONMENT': 'PRODUCTION'}):
             purge_for_announce(self.announce_cloud_event)
@@ -52,7 +52,7 @@ class TestAnnouncePurge(unittest.TestCase):
                 assert call not in MockPurgeFun.call_args_list
             
     @patch('main.purge_fastly_keys')
-    @patch('main.purge_announced_papers')
+    @patch('main._purge_announced_papers')
     def test_development_calls(self,_, MockPurgeFun):
         with patch.dict('os.environ', {'ENVIRONMENT': 'DEVELOPMENT'}):
             purge_for_announce(self.announce_cloud_event)

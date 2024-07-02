@@ -161,3 +161,6 @@ cython_debug/
 cloud_functions/hello_world/.python-version
 cloud_functions/fastly_announce_purge/src/.python-version
 cloud_functions/fastly_announce_purge/.python-version
+cloud_functions/purge_all_for_paper/.python-version
+cloud_functions/purge_all_for_paper/src/.python-version
+cloud_functions/purge_on_obj_change/.python-version
