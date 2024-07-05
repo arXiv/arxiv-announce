@@ -45,7 +45,7 @@ def purge_for_announce(cloud_event: CloudEvent):
         if environment == "PRODUCTION":
             purge_fastly_keys("announce")
             purge_fastly_keys("announce","rss.arxiv.org")
-            purge_fastly_keys("announce","export.arxiv.org")
+            #purge_fastly_keys("announce","export.arxiv.org") #not currently live from fastly
             logger.info("Purged announcement key for production")
         elif environment == "DEVELOPMENT":
             purge_fastly_keys("announce", "browse.dev.arxiv.org")
@@ -63,7 +63,7 @@ def _purge_announced_papers():
     environment = os.environ.get('ENVIRONMENT')
     if environment == "PRODUCTION":
         purge_fastly_keys(keys)
-        purge_fastly_keys(keys,"export.arxiv.org")
+        #purge_fastly_keys(keys,"export.arxiv.org") #currently not in use
     elif environment == "DEVELOPMENT":
         purge_fastly_keys(keys, "browse.dev.arxiv.org")
     elif environment == "TESTING":
