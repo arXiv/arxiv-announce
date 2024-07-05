@@ -11,7 +11,7 @@ class TestAnnouncePurge(unittest.TestCase):
     production_calls = [
         call("announce", "rss.arxiv.org"),
         call("announce" ),
-        call("announce","export.arxiv.org")
+        #call("announce","export.arxiv.org") #not currently enabled
     ]
     dev_calls=[call("announce", "browse.dev.arxiv.org"),]
 
