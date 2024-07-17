@@ -28,6 +28,7 @@ def purge_all_for_paper(cloud_event: CloudEvent):
     """
 
     data=json.loads(base64.b64decode(cloud_event.get_data()['message']['data']).decode())
+    logger.info(f"Received message: {data}")
     paper= data.get("paper_id")
     old_cats= data.get("old_categories")
     enviro=os.environ.get('ENVIRONMENT')
