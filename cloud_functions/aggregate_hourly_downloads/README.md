@@ -11,7 +11,7 @@ and
 to set up enviroment variables
 
 ```
-export ENVIRONMENT='PRODUCTION'
+export ENVIRONMENT='DEVELOPMENT'
 export LOG_LEVEL='INFO'
 export CLASSIC_DB_URI='SECRET_HERE'
 ```
