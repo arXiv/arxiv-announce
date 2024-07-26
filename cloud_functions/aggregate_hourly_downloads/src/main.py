@@ -1,8 +1,10 @@
 import json
 import base64
 import os
-from typing import List, Dict
+from typing import Set, Dict, List
 
+from arxiv.taxonomy.category import Category
+from arxiv.taxonomy.definitions import ARCHIVES_SUBSUMED, CATEGORY_ALIASES, CATEGORIES
 from arxiv.db import session
 from arxiv.db.models import Metadata, DocumentCategory
 
@@ -31,25 +33,34 @@ bq_client = bigquery.Client()
 
 class PaperCategories:
     paper_id: str
-    primary : str
-    crosses: List[str]
+    primary : Category
+    crosses: Set[Category]
 
     def __init__(self, id:str):
         self.paper_id=id
-        self.primary=""
-        self.crosses=[]
+        self.primary=None
+        self.crosses=set()
 
     def add_primary(self,cat:str):
-        if self.primary != "":
+        if self.primary != None: #this function should only get called once per paper
             logger.error(f"Multiple primary categories for {self.paper_id}: {self.primary} and {cat}")
-            self.add_cross(self.primary)
-        self.primary=cat
+            self.add_cross(cat) #add as a cross just to keep data
+        else:
+            catgory=CATEGORIES[cat]
+            canon=catgory.get_canonical()
+            self.primary=canon
+            self.crosses.discard(canon) #removes from crosses if present
 
     def add_cross(self, cat:str):
-        self.crosses.append(cat)
+        catgory=CATEGORIES[cat]
+        canon=catgory.get_canonical()
+        #avoid dupliciates of categories with other names
+        if self.primary is None or canon != self.primary:
+            self.crosses.add(canon)
 
     def __repr__(self):
-        return f"Paper: {self.paper_id} Primary: {self.primary} Crosses: {self.crosses}"
+        crosses_str = ', '.join(cat.id for cat in self.crosses)
+        return f"Paper: {self.paper_id} Primary: {self.primary.id} Crosses: {crosses_str}"
 
 
 @functions_framework.cloud_event
@@ -103,7 +114,6 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
                 entry.add_primary(cat)
             else:
                 entry.add_cross(cat)
-            
 
 
         # for row in download_data:
