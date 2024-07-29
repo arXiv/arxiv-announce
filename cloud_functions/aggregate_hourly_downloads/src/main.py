@@ -77,6 +77,36 @@ class DownloadData:
                 f"download_type='{self.download_type}', time='{self.time}', "
                 f"num={self.num})")
 
+class DownloadCounts:
+    def __init__(self):
+        self.primary=0
+        self.cross=0
+
+    def __repr__(self):
+        return f"Count(primary: {self.primary}, cross: {self.cross})"
+
+class DownloadKey:
+    def __init__(self, time: datetime, country: str, download_type: DownloadType, category_id: str):
+        self.time = time  
+        self.country = country
+        self.download_type = download_type
+        self.category=category_id
+
+    def __eq__(self, other):
+        if isinstance(other, DownloadKey):
+            return (self.time == other.time and 
+                    self.country == other.country and 
+                    self.download_type == other.download_type and
+                    self.category == other.category
+                    )
+        return False
+
+    def __hash__(self):
+        return hash((self.time, self.country, self.download_type, self.category))
+
+    def __repr__(self):
+        return f"Key(type: {self.download_type}, cat: {self.category}, country: {self.country}, day: {self.time.day} hour: {self.time.hour})"
+
 @functions_framework.cloud_event
 def aggregate_hourly_downloads(cloud_event: CloudEvent):
     """ get downloads data and aggregate but category country and download type
@@ -105,14 +135,14 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
 
         #process and store returned data
         paper_ids=set() #only look things up for each paper once
-        download_data=[] #not a dictionary because no unique keys
+        download_data: List[DownloadData]=[] #not a dictionary because no unique keys
         for row in download_result:
             download_data.append(
                 DownloadData(
                     paper_id=row['paper_id'],
                     country=row['geo_country'],
                     download_type=row['download_type'],
-                    time=row['start_dttm'],
+                    time=row['start_dttm'].replace(minute=0, second=0, microsecond=0), #bucketing by hour
                     num=row['num_downloads']
                 )
             )
@@ -121,7 +151,22 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
         #find categories for all the papers
         paper_categories=get_paper_categories(paper_ids)
 
-        all_data={}
+        #aggregate download data
+        all_data: Dict[DownloadKey, DownloadCounts]={}
+        for entry in download_data:
+            cats=paper_categories[entry.paper_id]
+            #record primary
+            key=DownloadKey(entry.time, entry.country, entry.download_type, cats.primary.id)
+            value=all_data.get(key, DownloadCounts())
+            value.primary+=entry.num
+            all_data[key]=value
+            
+            #record for each cross
+            for cat in cats.crosses:
+                key=DownloadKey(entry.time, entry.country, entry.download_type, cat.id)
+                value=all_data.get(key, DownloadCounts())
+                value.cross+=entry.num
+                all_data[key]=value
 
 
     else:
@@ -153,3 +198,4 @@ def get_paper_categories(paper_ids: List[str])-> Dict[str, PaperCategories]:
             entry.add_cross(cat)
 
     return paper_categories
+
