@@ -1,7 +1,8 @@
 import json
 import base64
 import os
-from typing import Set, Dict, List
+from typing import Set, Dict, List, Literal
+from datetime import datetime
 
 from arxiv.taxonomy.category import Category
 from arxiv.taxonomy.definitions import ARCHIVES_SUBSUMED, CATEGORY_ALIASES, CATEGORIES
@@ -17,7 +18,6 @@ from cloudevents.http import CloudEvent
 
 from google.cloud import bigquery
 from sqlalchemy.orm import aliased
-from sqlalchemy import func
 
 #cloud function logging setup
 handler = CloudLoggingHandler(Client())
@@ -30,6 +30,8 @@ logger.addHandler(handler)
 
 # Initialize BigQuery client
 bq_client = bigquery.Client()
+
+DownloadType = Literal["pdf", "html", "src"]
 
 class PaperCategories:
     paper_id: str
@@ -62,6 +64,18 @@ class PaperCategories:
         crosses_str = ', '.join(cat.id for cat in self.crosses)
         return f"Paper: {self.paper_id} Primary: {self.primary.id} Crosses: {crosses_str}"
 
+class DownloadData:
+    def __init__(self, paper_id: str, country: str, download_type: DownloadType, time: datetime, num: int):
+        self.paper_id = paper_id
+        self.country = country
+        self.download_type = download_type
+        self.time = time
+        self.num = num
+
+    def __repr__(self) -> str:
+        return (f"DownloadData(paper_id='{self.paper_id}', country='{self.country}', "
+                f"download_type='{self.download_type}', time='{self.time}', "
+                f"num={self.num})")
 
 @functions_framework.cloud_event
 def aggregate_hourly_downloads(cloud_event: CloudEvent):
@@ -80,53 +94,62 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
             SELECT 
                 paper_id, 
                 geo_country, 
-                continent, 
+                download_type, 
                 start_dttm, 
                 num_downloads 
             FROM arxiv-production.arxiv_stats.papers_downloaded_by_ip_recently 
             LIMIT 5
         """
         query_job = bq_client.query(query)
-        download_data = query_job.result() 
+        download_result = query_job.result() 
 
-        #get all the paper_ids
-        paper_ids=[]
-        for row in download_data:
-            paper_ids.append(row['paper_id'])
-
-        #get the category data for papers
-        meta=aliased(Metadata)
-        dc=aliased(DocumentCategory)    
-        paper_cats = (
-            session.query(meta.paper_id, dc.category, dc.is_primary)
-            .join(meta, dc.document_id == meta.document_id)
-            .filter(meta.paper_id.in_(paper_ids)) 
-            .filter(meta.is_current==1)
-            .all()
-        )
+        #process and store returned data
+        paper_ids=set() #only look things up for each paper once
+        download_data=[] #not a dictionary because no unique keys
+        for row in download_result:
+            download_data.append(
+                DownloadData(
+                    paper_id=row['paper_id'],
+                    country=row['geo_country'],
+                    download_type=row['download_type'],
+                    time=row['start_dttm'],
+                    num=row['num_downloads']
+                )
+            )
+            paper_ids.add(row['paper_id'])
         
-        #format paper categories into dictionary
-        paper_categories: Dict[str, PaperCategories]={}
-        for row in paper_cats:
-            paper_id, cat, is_primary = row
-            entry=paper_categories.setdefault(paper_id, PaperCategories(paper_id))
-            if is_primary ==1:
-                entry.add_primary(cat)
-            else:
-                entry.add_cross(cat)
+        #find categories for all the papers
+        paper_categories=get_paper_categories(paper_ids)
 
-
-        # for row in download_data:
-
-        #     paper_id = row['paper_id']
-        #     geo_country = row['geo_country']
-        #     continent = row['continent']
-        #     start_dttm = row['start_dttm']
-        #     num_downloads = row['num_downloads']
-        #     print(f"Paper ID: {paper_id}, Country: {geo_country}, Continent: {continent}, Start Date: {start_dttm}, Downloads: {num_downloads}")
-            
+        all_data={}
 
 
     else:
         logger.info(f"Unknown Enviroment: {enviro}")
 
+
+
+
+def get_paper_categories(paper_ids: List[str])-> Dict[str, PaperCategories]:
+    #get the category data for papers
+    meta=aliased(Metadata)
+    dc=aliased(DocumentCategory)    
+    paper_cats = (
+        session.query(meta.paper_id, dc.category, dc.is_primary)
+        .join(meta, dc.document_id == meta.document_id)
+        .filter(meta.paper_id.in_(paper_ids)) 
+        .filter(meta.is_current==1)
+        .all()
+    )
+    
+    #format paper categories into dictionary
+    paper_categories: Dict[str, PaperCategories]={}
+    for row in paper_cats:
+        paper_id, cat, is_primary = row
+        entry=paper_categories.setdefault(paper_id, PaperCategories(paper_id))
+        if is_primary ==1:
+            entry.add_primary(cat)
+        else:
+            entry.add_cross(cat)
+
+    return paper_categories
