@@ -1,11 +1,11 @@
 import json
 import base64
 import os
-from typing import Set, Dict, List, Literal
+from typing import Set, Dict, List, Literal, Tuple
 from datetime import datetime
 
 from arxiv.taxonomy.category import Category
-from arxiv.taxonomy.definitions import ARCHIVES_SUBSUMED, CATEGORY_ALIASES, CATEGORIES
+from arxiv.taxonomy.definitions import CATEGORIES
 from arxiv.db import session
 from arxiv.db.models import Metadata, DocumentCategory
 
@@ -18,6 +18,7 @@ from cloudevents.http import CloudEvent
 
 from google.cloud import bigquery
 from sqlalchemy.orm import aliased
+from sqlalchemy import Row
 
 #cloud function logging setup
 handler = CloudLoggingHandler(Client())
@@ -31,7 +32,7 @@ logger.addHandler(handler)
 # Initialize BigQuery client
 bq_client = bigquery.Client()
 
-DownloadType = Literal["pdf", "html", "src"]
+DownloadType = Literal["pdf", "html", "src", "e-prints"]
 
 class PaperCategories:
     paper_id: str
@@ -59,6 +60,13 @@ class PaperCategories:
         #avoid dupliciates of categories with other names
         if self.primary is None or canon != self.primary:
             self.crosses.add(canon)
+
+    def __eq__(self, other):
+        if not isinstance(other, PaperCategories):
+            return False
+        return (self.paper_id == other.paper_id and
+                self.primary == other.primary and
+                self.crosses == other.crosses)
 
     def __repr__(self):
         crosses_str = ', '.join(cat.id for cat in self.crosses)
@@ -186,10 +194,13 @@ def get_paper_categories(paper_ids: List[str])-> Dict[str, PaperCategories]:
         .filter(meta.is_current==1)
         .all()
     )
-    
+
+    return process_paper_categories(paper_cats)
+
+def process_paper_categories(data: List[Row[Tuple[str, str, int]]])-> Dict[str, PaperCategories]:
     #format paper categories into dictionary
     paper_categories: Dict[str, PaperCategories]={}
-    for row in paper_cats:
+    for row in data:
         paper_id, cat, is_primary = row
         entry=paper_categories.setdefault(paper_id, PaperCategories(paper_id))
         if is_primary ==1:
@@ -198,4 +209,3 @@ def get_paper_categories(paper_ids: List[str])-> Dict[str, PaperCategories]:
             entry.add_cross(cat)
 
     return paper_categories
-
