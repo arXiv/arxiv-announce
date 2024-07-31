@@ -122,77 +122,86 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
 
     data=json.loads(base64.b64decode(cloud_event.get_data()['message']['data']).decode())
     logger.info(f"Received message: {data}")
+
+    #get and check enviroment data
     enviro=os.environ.get('ENVIRONMENT')
-    if enviro == "PRODUCTION":
-        pass
+    download_table=os.environ.get('DOWNLOAD_TABLE')
+    write_table=os.environ.get('WRITE_TABLE')
+    if any(v is None for v in (enviro, download_table, write_table)):
+        logger.critical(f"Missing enviroment variable(s): ENVIRONMENT:{enviro}, DOWNLOAD_TABLE: {download_table}, WRITE_TABLE: {write_table}")
+        return #dont bother retrying
+    elif enviro == "PRODUCTION":
+        if "development" in download_table or "development" in write_table: 
+            logger.warning(f"Referencing development project in production! Downloads {download_table} Write {write_table}")
     elif enviro == "DEVELOPMENT":
-
-        #get the download data
-        query = """
-            SELECT 
-                paper_id, 
-                geo_country, 
-                download_type, 
-                start_dttm, 
-                num_downloads 
-            FROM arxiv-production.arxiv_stats.papers_downloaded_by_ip_recently 
-            LIMIT 5
-        """
-        query_job = bq_client.query(query)
-        download_result = query_job.result() 
-
-        #process and store returned data
-        paper_ids=set() #only look things up for each paper once
-        download_data: List[DownloadData]=[] #not a dictionary because no unique keys
-        for row in download_result:
-            download_data.append(
-                DownloadData(
-                    paper_id=row['paper_id'],
-                    country=row['geo_country'],
-                    download_type=row['download_type'],
-                    time=row['start_dttm'].replace(minute=0, second=0, microsecond=0), #bucketing by hour
-                    num=row['num_downloads']
-                )
-            )
-            paper_ids.add(row['paper_id'])
-
-        if len(paper_ids) ==0:
-            logger.critical("No data retrieved from BigQuery")
-            return #this will prevent retries (is that good?)
-        
-        #find categories for all the papers
-        paper_categories=get_paper_categories(paper_ids)
-        if len(paper_categories) ==0:
-            logger.critical("No category data retrieved from database")
-            return #this will prevent retries (is that good?)
-
-        #aggregate download data
-        all_data: Dict[DownloadKey, DownloadCounts]={}
-        for entry in download_data:
-            try:
-                cats=paper_categories[entry.paper_id]
-            except KeyError as e:
-                logger.error(f"No category data found for {entry.paper_id} Error: {e}")
-                continue #dont process this paper
-            
-            #record primary
-            key=DownloadKey(entry.time, entry.country, entry.download_type, cats.primary.id)
-            value=all_data.get(key, DownloadCounts())
-            value.primary+=entry.num
-            all_data[key]=value
-            
-            #record for each cross
-            for cat in cats.crosses:
-                key=DownloadKey(entry.time, entry.country, entry.download_type, cat.id)
-                value=all_data.get(key, DownloadCounts())
-                value.cross+=entry.num
-                all_data[key]=value
-
-
+        if "production" in download_table or "production" in write_table: 
+            logger.warning(f"Referencing production project in development! Downloads {download_table} Write {write_table}")
     else:
-        logger.info(f"Unknown Enviroment: {enviro}")
+        logger.error(f"Unknown Enviroment: {enviro}")
+        return #dont bother retrying
 
+    #get the download data
+    query = f"""
+        SELECT 
+            paper_id, 
+            geo_country, 
+            download_type, 
+            start_dttm, 
+            num_downloads 
+        FROM {download_table} 
+        LIMIT 5
+    """
+    query_job = bq_client.query(query)
+    download_result = query_job.result() 
 
+    #process and store returned data
+    paper_ids=set() #only look things up for each paper once
+    download_data: List[DownloadData]=[] #not a dictionary because no unique keys
+    for row in download_result:
+        download_data.append(
+            DownloadData(
+                paper_id=row['paper_id'],
+                country=row['geo_country'],
+                download_type=row['download_type'],
+                time=row['start_dttm'].replace(minute=0, second=0, microsecond=0), #bucketing by hour
+                num=row['num_downloads']
+            )
+        )
+        paper_ids.add(row['paper_id'])
+
+    if len(paper_ids) ==0:
+        logger.critical("No data retrieved from BigQuery")
+        return #this will prevent retries (is that good?)
+    
+    #find categories for all the papers
+    paper_categories=get_paper_categories(paper_ids)
+    if len(paper_categories) ==0:
+        logger.critical("No category data retrieved from database")
+        return #this will prevent retries (is that good?)
+
+    #aggregate download data
+    all_data: Dict[DownloadKey, DownloadCounts]={}
+    for entry in download_data:
+        try:
+            cats=paper_categories[entry.paper_id]
+        except KeyError as e:
+            logger.error(f"No category data found for {entry.paper_id} Error: {e}")
+            continue #dont process this paper
+        
+        #record primary
+        key=DownloadKey(entry.time, entry.country, entry.download_type, cats.primary.id)
+        value=all_data.get(key, DownloadCounts())
+        value.primary+=entry.num
+        all_data[key]=value
+        
+        #record for each cross
+        for cat in cats.crosses:
+            key=DownloadKey(entry.time, entry.country, entry.download_type, cat.id)
+            value=all_data.get(key, DownloadCounts())
+            value.cross+=entry.num
+            all_data[key]=value
+
+    #TODO write all_data to tables  
 
 
 def get_paper_categories(paper_ids: List[str])-> Dict[str, PaperCategories]:

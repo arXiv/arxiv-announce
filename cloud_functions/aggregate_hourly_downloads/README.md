@@ -8,13 +8,18 @@ to install
 and 
 ` pip install -r src/requirements-dev.txt `
 
-to set up enviroment variables
+# enviroment variables
+```
+export ENVIRONMENT=DEVELOPMENT LOG_LEVEL=INFO DOWNLOAD_TABLE=arxiv-production.arxiv_stats.papers_downloaded_by_ip_recently WRITE_TABLE=TBD
 
 ```
-export ENVIRONMENT='DEVELOPMENT'
-export LOG_LEVEL='INFO'
+
+you need everything in the env file plus:
+
+```
 export CLASSIC_DB_URI='SECRET_HERE'
 ```
+^ this always needs to be for the prodution database to get category data for recent papers
 
 to run 
 ` functions-framework --target=aggregate_hourly_downloads --signature-type=cloudevent `
