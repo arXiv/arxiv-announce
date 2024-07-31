@@ -52,7 +52,7 @@ class PaperCategories:
             catgory=CATEGORIES[cat]
             canon=catgory.get_canonical()
             self.primary=canon
-            self.crosses.discard(canon) #removes from crosses if present
+            self.crosses.discard(canon) #removes from crosses if present, the same category cant be both primary and cross. This is relevant because an alternate name may be listed as a cross list
 
     def add_cross(self, cat:str):
         catgory=CATEGORIES[cat]
