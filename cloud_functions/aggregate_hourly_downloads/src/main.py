@@ -155,14 +155,26 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
                 )
             )
             paper_ids.add(row['paper_id'])
+
+        if len(paper_ids) ==0:
+            logger.critical("No data retrieved from BigQuery")
+            return #this will prevent retries (is that good?)
         
         #find categories for all the papers
         paper_categories=get_paper_categories(paper_ids)
+        if len(paper_categories) ==0:
+            logger.critical("No category data retrieved from database")
+            return #this will prevent retries (is that good?)
 
         #aggregate download data
         all_data: Dict[DownloadKey, DownloadCounts]={}
         for entry in download_data:
-            cats=paper_categories[entry.paper_id]
+            try:
+                cats=paper_categories[entry.paper_id]
+            except KeyError as e:
+                logger.error(f"No category data found for {entry.paper_id} Error: {e}")
+                continue #dont process this paper
+            
             #record primary
             key=DownloadKey(entry.time, entry.country, entry.download_type, cats.primary.id)
             value=all_data.get(key, DownloadCounts())
