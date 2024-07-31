@@ -10,7 +10,7 @@ and
 
 # enviroment variables
 ```
-export ENVIRONMENT=DEVELOPMENT LOG_LEVEL=INFO DOWNLOAD_TABLE=arxiv-production.arxiv_stats.papers_downloaded_by_ip_recently WRITE_TABLE=TBD
+export ENVIRONMENT=DEVELOPMENT LOG_LEVEL=INFO DOWNLOAD_TABLE=arxiv-development.arxiv_stats.papers_downloaded_by_ip_recently WRITE_TABLE=TBD
 
 ```
 
