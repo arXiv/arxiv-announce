@@ -155,15 +155,15 @@ def test_aggregate_data():
     ]
 
     #from first entry
-    key1=DownloadKey(hour, "USA", "pdf", "math.GM")
-    key2=DownloadKey(hour, "USA", "pdf", "q-fin.CP")
-    key3=DownloadKey(hour, "USA", "pdf", "q-fin.PM")
+    key1=DownloadKey(hour, "USA", "pdf", "math", "math.GM")
+    key2=DownloadKey(hour, "USA", "pdf", "q-fin", "q-fin.CP")
+    key3=DownloadKey(hour, "USA", "pdf", "q-fin", "q-fin.PM")
     #from second entry
-    key4=DownloadKey(hour, "Ireland", "pdf", "math.GM")
-    key5=DownloadKey(hour, "Ireland", "pdf", "q-fin.CP")
-    key6=DownloadKey(hour, "Ireland", "pdf", "q-fin.PM")
+    key4=DownloadKey(hour, "Ireland", "pdf", "math", "math.GM")
+    key5=DownloadKey(hour, "Ireland", "pdf", "q-fin", "q-fin.CP")
+    key6=DownloadKey(hour, "Ireland", "pdf", "q-fin", "q-fin.PM")
     #from 3rd entry
-    key7=DownloadKey(hour, "Ireland", "pdf", "hep-lat")
+    key7=DownloadKey(hour, "Ireland", "pdf", "hep-lat", "hep-lat")
     #4th entry uses existing keys
     expected = {
         key1: DownloadCounts(10,0),

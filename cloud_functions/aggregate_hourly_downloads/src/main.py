@@ -17,8 +17,9 @@ import functions_framework
 from cloudevents.http import CloudEvent
 
 from google.cloud import bigquery
-from sqlalchemy.orm import aliased
-from sqlalchemy import Row
+from sqlalchemy import create_engine, Column, String, Integer, DateTime, Enum, PrimaryKeyConstraint, Row
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, aliased
 
 #cloud function logging setup
 handler = CloudLoggingHandler(Client())
@@ -32,7 +33,7 @@ logger.addHandler(handler)
 # Initialize BigQuery client
 bq_client = bigquery.Client()
 
-DownloadType = Literal["pdf", "html", "src", "e-prints"]
+DownloadType = Literal["pdf", "html", "src", "e-print"]
 
 class PaperCategories:
     paper_id: str
@@ -99,10 +100,11 @@ class DownloadCounts:
         return f"Count(primary: {self.primary}, cross: {self.cross})"
 
 class DownloadKey:
-    def __init__(self, time: datetime, country: str, download_type: DownloadType, category_id: str):
+    def __init__(self, time: datetime, country: str, download_type: DownloadType, archive: str, category_id: str):
         self.time = time  
         self.country = country
         self.download_type = download_type
+        self.archive=archive
         self.category=category_id
 
     def __eq__(self, other):
@@ -227,14 +229,14 @@ def aggregate_data(download_data: List[DownloadData], paper_categories: Dict[str
             continue #dont process this paper
         
         #record primary
-        key=DownloadKey(entry.time, entry.country, entry.download_type, cats.primary.id)
+        key=DownloadKey(entry.time, entry.country, entry.download_type, cats.primary.in_archive, cats.primary.id)
         value=all_data.get(key, DownloadCounts())
         value.primary+=entry.num
         all_data[key]=value
         
         #record for each cross
         for cat in cats.crosses:
-            key=DownloadKey(entry.time, entry.country, entry.download_type, cat.id)
+            key=DownloadKey(entry.time, entry.country, entry.download_type, cat.in_archive, cat.id)
             value=all_data.get(key, DownloadCounts())
             value.cross+=entry.num
             all_data[key]=value
