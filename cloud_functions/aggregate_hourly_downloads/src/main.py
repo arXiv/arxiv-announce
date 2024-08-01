@@ -86,10 +86,15 @@ class DownloadData:
                 f"num={self.num})")
 
 class DownloadCounts:
-    def __init__(self):
-        self.primary=0
-        self.cross=0
+    def __init__(self, primary: int =0, cross: int=0):
+        self.primary=primary
+        self.cross=cross
 
+    def __eq__(self, other):
+        if isinstance(other, DownloadCounts):
+            return self.primary==other.primary and self.cross==other.cross
+        else:
+            return False
     def __repr__(self):
         return f"Count(primary: {self.primary}, cross: {self.cross})"
 
@@ -180,26 +185,7 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
         return #this will prevent retries (is that good?)
 
     #aggregate download data
-    all_data: Dict[DownloadKey, DownloadCounts]={}
-    for entry in download_data:
-        try:
-            cats=paper_categories[entry.paper_id]
-        except KeyError as e:
-            logger.error(f"No category data found for {entry.paper_id} Error: {e}")
-            continue #dont process this paper
-        
-        #record primary
-        key=DownloadKey(entry.time, entry.country, entry.download_type, cats.primary.id)
-        value=all_data.get(key, DownloadCounts())
-        value.primary+=entry.num
-        all_data[key]=value
-        
-        #record for each cross
-        for cat in cats.crosses:
-            key=DownloadKey(entry.time, entry.country, entry.download_type, cat.id)
-            value=all_data.get(key, DownloadCounts())
-            value.cross+=entry.num
-            all_data[key]=value
+    aggregated_data=aggregate_data(download_data)
 
     #TODO write all_data to tables  
 
@@ -230,3 +216,27 @@ def process_paper_categories(data: List[Row[Tuple[str, str, int]]])-> Dict[str, 
             entry.add_cross(cat)
 
     return paper_categories
+
+def aggregate_data(download_data: List[DownloadData], paper_categories: Dict[str, PaperCategories]) -> Dict[DownloadKey, DownloadCounts]:
+    all_data: Dict[DownloadKey, DownloadCounts]={}
+    for entry in download_data:
+        try:
+            cats=paper_categories[entry.paper_id]
+        except KeyError as e:
+            logger.error(f"No category data found for {entry.paper_id} Error: {e}")
+            continue #dont process this paper
+        
+        #record primary
+        key=DownloadKey(entry.time, entry.country, entry.download_type, cats.primary.id)
+        value=all_data.get(key, DownloadCounts())
+        value.primary+=entry.num
+        all_data[key]=value
+        
+        #record for each cross
+        for cat in cats.crosses:
+            key=DownloadKey(entry.time, entry.country, entry.download_type, cat.id)
+            value=all_data.get(key, DownloadCounts())
+            value.cross+=entry.num
+            all_data[key]=value
+
+    return all_data
