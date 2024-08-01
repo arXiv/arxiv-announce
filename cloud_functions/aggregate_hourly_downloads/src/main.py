@@ -156,7 +156,7 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
             start_dttm, 
             num_downloads 
         FROM {download_table} 
-        LIMIT 5
+        LIMIT 500
     """
     query_job = bq_client.query(query)
     download_result = query_job.result() 
@@ -175,6 +175,7 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
             )
         )
         paper_ids.add(row['paper_id'])
+    logger.info(f"fetched {len(download_data)} rows, unique paper ids: {len(paper_ids)}")
 
     if len(paper_ids) ==0:
         logger.critical("No data retrieved from BigQuery")
@@ -187,9 +188,11 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
         return #this will prevent retries (is that good?)
 
     #aggregate download data
-    aggregated_data=aggregate_data(download_data)
-
-    #TODO write all_data to tables  
+    aggregated_data=aggregate_data(download_data, paper_categories)
+    
+    #write all_data to tables  
+    insert_into_database(aggregated_data, write_table)
+    logger.info(f"added {len(aggregated_data.keys())} rows")
 
 
 def get_paper_categories(paper_ids: List[str])-> Dict[str, PaperCategories]:
@@ -220,6 +223,9 @@ def process_paper_categories(data: List[Row[Tuple[str, str, int]]])-> Dict[str, 
     return paper_categories
 
 def aggregate_data(download_data: List[DownloadData], paper_categories: Dict[str, PaperCategories]) -> Dict[DownloadKey, DownloadCounts]:
+    """creates a dictionary of download counts by time, country, download type, and category
+        goes through each download entry, matches it with its caegories and adds the number of downloads to the count
+    """
     all_data: Dict[DownloadKey, DownloadCounts]={}
     for entry in download_data:
         try:
@@ -242,3 +248,47 @@ def aggregate_data(download_data: List[DownloadData], paper_categories: Dict[str
             all_data[key]=value
 
     return all_data
+
+def insert_into_database(aggregated_data: Dict[DownloadKey, DownloadCounts], db_uri: str):
+    """takes the aggregated data, formats it into database objects and then inserts them into the database"""
+    #set up table
+    Base = declarative_base()
+    class HourlyDownloadData(Base):
+        __tablename__ = 'hourly_download_data'     
+        country = Column(String, primary_key=True)
+        download_type = Column(String, Enum('pdf', 'html', 'src', 'e-print'), primary_key=True)
+        archive = Column(String)
+        category = Column(String, primary_key=True)
+        primary_count = Column(Integer)
+        cross_count = Column(Integer)
+        start_dttm = Column(DateTime, primary_key=True)
+        __table_args__ = (
+            PrimaryKeyConstraint('country', 'download_type', 'category', 'start_dttm'),
+        )
+
+    # Setup database connection
+    engine = create_engine(db_uri)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    #prepare data
+    data_to_insert = [
+        HourlyDownloadData(
+            country=key.country,
+            download_type=key.download_type,
+            archive=key.archive,
+            category=key.category,
+            primary_count=counts.primary,
+            cross_count=counts.cross,
+            start_dttm=key.time
+        )
+        for key, counts in aggregated_data.items()
+    ]
+
+    #insert data
+    session.bulk_save_objects(data_to_insert)
+    session.commit()
+    session.close()
+
+    return
