@@ -8,6 +8,7 @@ from arxiv.taxonomy.category import Category
 from arxiv.taxonomy.definitions import CATEGORIES
 from arxiv.db import session
 from arxiv.db.models import Metadata, DocumentCategory
+from arxiv.identifier import Identifier
 
 import logging
 from google.cloud.logging import Client
@@ -156,7 +157,7 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
             start_dttm, 
             num_downloads 
         FROM {download_table} 
-        LIMIT 5000
+   
     """
     query_job = bq_client.query(query)
     download_result = query_job.result() 
@@ -165,17 +166,23 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
     paper_ids=set() #only look things up for each paper once
     download_data: List[DownloadData]=[] #not a dictionary because no unique keys
     for row in download_result:
-        d_type = "src" if row['download_type'] == "e-print" else row['download_type'] #combine e-print and src downloads
-        download_data.append(
-            DownloadData(
-                paper_id=row['paper_id'],
-                country=row['geo_country'],
-                download_type=d_type,
-                time=row['start_dttm'].replace(minute=0, second=0, microsecond=0), #bucketing by hour
-                num=row['num_downloads']
+        try:
+            d_type = "src" if row['download_type'] == "e-print" else row['download_type'] #combine e-print and src downloads
+            paper_id=Identifier(row['paper_id']).id
+            download_data.append(
+                DownloadData(
+                    paper_id=paper_id,
+                    country=row['geo_country'],
+                    download_type=d_type,
+                    time=row['start_dttm'].replace(minute=0, second=0, microsecond=0), #bucketing by hour
+                    num=row['num_downloads']
+                )
             )
-        )
-        paper_ids.add(row['paper_id'])
+            paper_ids.add(paper_id)
+        except Exception as e:
+            logger.error(f"Problem with row: {tuple(row)}, skipping. Error:{e}")
+            continue #dont count this download
+
     logger.info(f"fetched {len(download_data)} rows, unique paper ids: {len(paper_ids)}")
 
     if len(paper_ids) ==0:
