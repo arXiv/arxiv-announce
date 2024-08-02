@@ -18,7 +18,7 @@ import functions_framework
 from cloudevents.http import CloudEvent
 
 from google.cloud import bigquery
-from sqlalchemy import create_engine, Column, String, Integer, DateTime, Enum, PrimaryKeyConstraint, Row
+from sqlalchemy import create_engine, Column, String, Integer, DateTime, Enum, PrimaryKeyConstraint, Row, tuple_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, aliased
 
@@ -110,15 +110,16 @@ class DownloadKey:
 
     def __eq__(self, other):
         if isinstance(other, DownloadKey):
-            return (self.time == other.time and 
-                    self.country == other.country and 
+            return (self.country == other.country and 
                     self.download_type == other.download_type and
                     self.category == other.category
+                    and self.time.date() == other.time.date()
+                    and self.time.hour == other.time.hour
                     )
         return False
 
     def __hash__(self):
-        return hash((self.time, self.country, self.download_type, self.category))
+        return hash((self.time.date(), self.time.hour, self.country, self.download_type, self.category))
 
     def __repr__(self):
         return f"Key(type: {self.download_type}, cat: {self.category}, country: {self.country}, day: {self.time.day} hour: {self.time.hour})"
@@ -157,7 +158,7 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
             start_dttm, 
             num_downloads 
         FROM {download_table} 
-   
+        
     """
     query_job = bq_client.query(query)
     download_result = query_job.result() 
@@ -200,7 +201,6 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
     
     #write all_data to tables  
     insert_into_database(aggregated_data, write_table)
-    logger.info(f"added {len(aggregated_data.keys())} rows")
 
 
 def get_paper_categories(paper_ids: Set[str])-> Dict[str, PaperCategories]:
@@ -280,7 +280,48 @@ def insert_into_database(aggregated_data: Dict[DownloadKey, DownloadCounts], db_
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    #prepare data
+    #see what data is already there
+    keys_to_check = [
+        (item.country, item.download_type, item.category, item.time)
+        for item in aggregated_data.keys()
+    ]
+    existing_records = session.query(HourlyDownloadData).filter(
+        tuple_(
+            HourlyDownloadData.country,
+            HourlyDownloadData.download_type,
+            HourlyDownloadData.category,
+            HourlyDownloadData.start_dttm
+        ).in_(keys_to_check)
+    ).all()
+
+    #update existing records
+    keys_to_update=[
+        DownloadKey(
+            time=record.start_dttm,
+            country=record.country,
+            download_type=record.download_type,
+            archive=record.archive,
+            category_id=record.category
+        )
+        for record in existing_records
+    ]
+    update_data=[]
+    for key in keys_to_update:
+        counts=aggregated_data[key]
+
+        entry={
+            'country': key.country,
+            'download_type': key.download_type,
+            'archive': key.archive,
+            'category': key.category,
+            'start_dttm': key.time,
+            'primary_count': counts.primary,
+            'cross_count': counts.cross
+        }
+        update_data.append(entry)
+        del aggregated_data[key] #dont also insert
+
+    #all the new data to insert
     data_to_insert = [
         HourlyDownloadData(
             country=key.country,
@@ -294,9 +335,11 @@ def insert_into_database(aggregated_data: Dict[DownloadKey, DownloadCounts], db_
         for key, counts in aggregated_data.items()
     ]
 
-    #insert data
+    #add data
     session.bulk_save_objects(data_to_insert)
+    session.bulk_update_mappings(HourlyDownloadData, update_data)
     session.commit()
     session.close()
+    logger.info(f"added {len(data_to_insert)} rows, updated {len(update_data)} rows")
 
     return
