@@ -33,7 +33,7 @@ logger.addHandler(handler)
 # Initialize BigQuery client
 bq_client = bigquery.Client()
 
-DownloadType = Literal["pdf", "html", "src", "e-print"]
+DownloadType = Literal["pdf", "html", "src"]
 
 class PaperCategories:
     paper_id: str
@@ -156,7 +156,7 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
             start_dttm, 
             num_downloads 
         FROM {download_table} 
-        LIMIT 500
+        LIMIT 5000
     """
     query_job = bq_client.query(query)
     download_result = query_job.result() 
@@ -165,11 +165,12 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
     paper_ids=set() #only look things up for each paper once
     download_data: List[DownloadData]=[] #not a dictionary because no unique keys
     for row in download_result:
+        d_type = "src" if row['download_type'] == "e-print" else row['download_type'] #combine e-print and src downloads
         download_data.append(
             DownloadData(
                 paper_id=row['paper_id'],
                 country=row['geo_country'],
-                download_type=row['download_type'],
+                download_type=d_type,
                 time=row['start_dttm'].replace(minute=0, second=0, microsecond=0), #bucketing by hour
                 num=row['num_downloads']
             )
@@ -195,7 +196,7 @@ def aggregate_hourly_downloads(cloud_event: CloudEvent):
     logger.info(f"added {len(aggregated_data.keys())} rows")
 
 
-def get_paper_categories(paper_ids: List[str])-> Dict[str, PaperCategories]:
+def get_paper_categories(paper_ids: Set[str])-> Dict[str, PaperCategories]:
     #get the category data for papers
     meta=aliased(Metadata)
     dc=aliased(DocumentCategory)    
@@ -256,7 +257,7 @@ def insert_into_database(aggregated_data: Dict[DownloadKey, DownloadCounts], db_
     class HourlyDownloadData(Base):
         __tablename__ = 'hourly_download_data'     
         country = Column(String, primary_key=True)
-        download_type = Column(String, Enum('pdf', 'html', 'src', 'e-print'), primary_key=True)
+        download_type = Column(String, Enum('pdf', 'html', 'src'), primary_key=True)
         archive = Column(String)
         category = Column(String, primary_key=True)
         primary_count = Column(Integer)
