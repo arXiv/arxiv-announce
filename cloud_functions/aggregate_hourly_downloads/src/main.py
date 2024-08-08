@@ -258,15 +258,21 @@ def aggregate_data(download_data: List[DownloadData], paper_categories: Dict[str
     return all_data
 
 def insert_into_database(aggregated_data: Dict[DownloadKey, DownloadCounts], db_uri: str):
-    """takes the aggregated data, formats it into database objects and then inserts them into the database"""
+    """adds the data from an hour of downloads into the database
+        uses bulk insert and update statements to increase efficiency
+        first compiles all the keys for the data we would like to add and checks for their presence in the database
+        present items are added to run update for, and removed from the aggregated dictionary
+        remaining items are inserted
+        data with duplicate keys will be overwritten to allow for reruns with updates
+    """
     #set up table
     Base = declarative_base()
     class HourlyDownloadData(Base):
         __tablename__ = 'hourly_download_data'     
-        country = Column(String, primary_key=True)
-        download_type = Column(String, Enum('pdf', 'html', 'src'), primary_key=True)
-        archive = Column(String)
-        category = Column(String, primary_key=True)
+        country = Column(String(255), primary_key=True)
+        download_type = Column(String(16), Enum('pdf', 'html', 'src'), primary_key=True)
+        archive = Column(String(16))
+        category = Column(String(32), primary_key=True)
         primary_count = Column(Integer)
         cross_count = Column(Integer)
         start_dttm = Column(DateTime, primary_key=True)
@@ -308,7 +314,6 @@ def insert_into_database(aggregated_data: Dict[DownloadKey, DownloadCounts], db_
     update_data=[]
     for key in keys_to_update:
         counts=aggregated_data[key]
-
         entry={
             'country': key.country,
             'download_type': key.download_type,
@@ -319,7 +324,7 @@ def insert_into_database(aggregated_data: Dict[DownloadKey, DownloadCounts], db_
             'cross_count': counts.cross
         }
         update_data.append(entry)
-        del aggregated_data[key] #dont also insert
+        del aggregated_data[key] #remove before insert
 
     #all the new data to insert
     data_to_insert = [
@@ -341,5 +346,4 @@ def insert_into_database(aggregated_data: Dict[DownloadKey, DownloadCounts], db_
     session.commit()
     session.close()
     logger.info(f"added {len(data_to_insert)} rows, updated {len(update_data)} rows")
-
     return
