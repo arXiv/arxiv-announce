@@ -1,47 +1,134 @@
-import json
-import base64
+
+import re
+from typing import Optional, List, Tuple
 import os
 
-import logging
-from google.cloud.logging import Client
-from google.cloud.logging.handlers import CloudLoggingHandler
-
-import functions_framework
 from cloudevents.http import CloudEvent
 
-from arxiv.integration.fastly.purge import purge_cache_for_paper
-from arxiv.identifier import IdentifierException
+import functions_framework
 
-#cloud function logging setup
-handler = CloudLoggingHandler(Client())
+import requests
+from arxiv.identifier import Identifier, STANDARD as MODERN_ID, _archive, _category
+from google.api_core import retry
+
 functions_framework.setup_logging()
-logger = logging.getLogger(__name__)
-log_level_str = os.getenv('LOG_LEVEL', 'INFO')
-log_level = getattr(logging, log_level_str.upper(), logging.INFO)
-logger.setLevel(log_level)
-logger.addHandler(handler)
+import logging
+
+
+PS_CACHE_OLD_ID = re.compile(r'(%s)\/[^\/]*\/\d*\/(\d{2}[01]\d{4}(v\d*)?)' % f'{_archive}|{_category}')
+"EX /ps_cache/hep-ph/pdf/0511/0511005v2.pdf"
+
+def _paperid(name: str) -> Optional[Identifier]:
+    if not name:
+        return None
+    if match := MODERN_ID.search(name):
+        return Identifier(match.group("arxiv_id"))
+    if match := PS_CACHE_OLD_ID.search(name):
+        return Identifier(match.group(1) + "/" + match.group(2))
+    else:
+        return None
+
+
+def purge_urls(key: str) -> Optional[Tuple[Identifier, List[str]]]:
+    """
+    Parameters
+    ----------
+    key: GS key should not start with a / ex. `ftp/arxiv/papers/1901/1901.0001.abs`
+
+    paperid: The paper ID this is related to
+
+    Returns
+    -------
+    List of paths to invalidate at fastly. Ex `["arxiv.org/abs/1901.0001"]`
+    """
+    # Since it is not clear if this is the current file or an older one
+    # invalidate both the versioned URL and the un-versioned current URL
+    paperid = _paperid(key)
+    if paperid is None:
+        return None
+
+    if key.startswith('/ftp/') or key.startswith("/orig/"):
+        if key.endswith(".abs"):
+            return paperid, [f"arxiv.org/abs/{paperid.idv}", f"arxiv.org/abs/{paperid.id}"]
+        else:
+            return paperid, [f"arxiv.org/e-print/{paperid.idv}", f"arxiv.org/e-print/{paperid.id}",
+                    f"arxiv.org/src/{paperid.idv}", f"arxiv.org/src/{paperid.id}"]
+    # pdf, html, ps are under /ps_cache
+    elif "/pdf/" in key:
+        return paperid, [f"arxiv.org/pdf/{paperid.idv}", f"arxiv.org/pdf/{paperid.id}"]
+    elif '/html/' in key:
+        # Note this does not invalidate any paths inside the html.tgz
+        return paperid, [f"arxiv.org/html/{paperid.idv}", f"arxiv.org/html/{paperid.id}",
+                # Note needs both with and without trailing slash
+                f"arxiv.org/html/{paperid.idv}/", f"arxiv.org/html/{paperid.id}/"]
+    elif '/ps/' in key:
+        return paperid, [f"arxiv.org/ps/{paperid.idv}", f"arxiv.org/ps/{paperid.id}"]
+    elif '/dvi/' in key:
+        return paperid, [f"arxiv.org/dvi/{paperid.idv}", f"arxiv.org/dvi/{paperid.id}"]
+    else:
+        return paperid, []
+
+
+class Invalidator:
+    def __init__(self, fastly_url: str, fastly_api_token: str, always_soft_purge: bool=False, dry_run: bool=False) -> None:
+        if fastly_url.endswith("/"):
+            self.fastly_url = fastly_url[:-1]
+        else:
+            self.fastly_url = fastly_url
+        self.fastly_api_token = fastly_api_token
+        self.always_soft_purge = always_soft_purge
+        self.dry_run = dry_run
+
+    @retry.Retry()
+    def invalidate(self, arxiv_url: str, paperid: Identifier, soft_purge: bool=False) -> None:
+        headers = {"Fastly-Key": self.fastly_api_token}
+        if self.always_soft_purge or soft_purge:
+            headers["fastly-soft-purge"] = "1"
+
+        url = f"{self.fastly_url}/{arxiv_url}"
+
+        if self.dry_run:
+            logging.info(f"{paperid.idv} DRY_RUN: Would have requested '{url}'")
+            return
+
+        resp = requests.get(url, headers=headers)
+        if resp.status_code == 200:
+            print(f"{paperid.idv} purged {arxiv_url}")
+            logging.info(f"{paperid.idv} purged {arxiv_url}")
+            return
+        if 400 <= resp.status_code < 500 and resp.status_code not in [429, 408]:
+            logging.error(f"Purge failed. GET req to {url} failed: {resp.status_code} {resp.text}")
+            return
+        else:
+            resp.raise_for_status()
+
+
+def invalidate_for_gs_change(bucket: str, key: str, invalidator: Invalidator) -> None:
+    tup = purge_urls(key)
+    if not tup:
+        logging.info(f"No purge: gs://{bucket}/{key} not related to an arxiv paper id")
+        return
+    paper_id, paths = tup
+    if not paths:
+        logging.info(f"No purge: gs://{bucket}/{key} Related to {paper_id.idv} but no paths")
+        return
+    for path in paths:
+            try:
+                invalidator.invalidate(path, paper_id)
+            except Exception as exc:
+                logging.error(f"Purge failed: {path} failed {exc}")
+
 
 @functions_framework.cloud_event
-def purge_all_for_paper(cloud_event: CloudEvent):
-    """ this function purges everything to do with a particular paper, inlcuding list pages it is on.
-    old_cats is used in case fo a category change to also refresh any lists the paper was removed from, and any year tallies its been added to or removed from
-    """
-
-    data=json.loads(base64.b64decode(cloud_event.get_data()['message']['data']).decode())
-    paper= data.get("paper_id")
-    old_cats= data.get("old_categories")
-    enviro=os.environ.get('ENVIRONMENT')
-    if enviro == "PRODUCTION":
-        try:
-            if old_cats=="Not specified":
-                purge_cache_for_paper(paper)
-            else:
-                purge_cache_for_paper(paper, old_cats)
-        #log message structure errors and acknowledge so they don't repeat    
-        except KeyError as e:
-            logger.error(f"Bad category string in old_categories: {old_cats}. Info: {e}")
-        except IdentifierException as e:
-            logger.error(f"Invalid paper_id provided: {paper}. Info: {e}")
-    else:
-        logger.info(f"Purge request ignored for non-production environment. Enviroment: {enviro} paper_id: {paper} old_categories: {old_cats}")
-
+def main(cloud_event: CloudEvent) -> None:
+    try:
+        data = cloud_event.get_data()
+        invalidate_for_gs_change(data.get("bucket"),
+                                 data.get("name"),
+                                 Invalidator(os.environ.get("FASTLY_API_TOKEN", "NOT_CONFIGURED"),
+                                             os.environ.get("FASTLY_URL", "https://api.fastly.com/purge"),
+                                             os.environ.get('ALWAYS_SOFT_PURGE', "0") == "1",
+                                             os.environ.get("DRY_RUN", "0") == "1"))
+    except Exception as ex:
+        logging.error(cloud_event)
+        raise ex

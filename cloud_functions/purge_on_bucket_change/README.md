@@ -1,5 +1,39 @@
 # Summary
-TODO
+Listens an listen to bucket change events and will purge at fastly based on
+the object changed in the bucket.
+
+Env vars:
+
+- FASTLY_API_TOKEN required, configure from secrets
+- FASTLY_URL optional, default is correct for fastly
+- ALWAYS_SOFT_PURGE optional, defaults off 1 or 0
+- DRY_RUN optional, defaults to off, 1 or 0
+
+Deploy with something like:
+
+  SA=fastly-invalidator@arxiv-production.iam.gserviceaccount.com
+  # needs access to secret fastly-purge-token
+
+  # default compute SA
+  TRIGGER_SA=1090350072932-compute@developer.gserviceaccount.com
+
+  gcloud functions deploy purge_on_obj_change \
+   --retry --gen2 \
+   --source ./ \
+   --runtime python311  \
+   --region us-central1 \
+   --trigger-bucket arxiv-production-data \
+   --trigger-location us \
+   --trigger-service-account=$TRIGGER_SA \
+   --entry-point main \
+   --service-account $SA \
+   --set-secrets "FASTLY_API_TOKEN=fastly-purge-token:latest" \
+   --allow-unauthenticated
+
+
+
+
+
 # commands
 
 to install 
