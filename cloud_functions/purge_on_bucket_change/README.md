@@ -8,6 +8,7 @@ Env vars:
 - FASTLY_URL optional, default is correct for fastly
 - ALWAYS_SOFT_PURGE optional, defaults off 1 or 0
 - DRY_RUN optional, defaults to off, 1 or 0
+- FASTLY_PURGE_TOKEN, secret purge token for connecting to fastly
 
 Deploy with something like:
 
