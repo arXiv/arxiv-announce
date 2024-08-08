@@ -4,36 +4,9 @@ the object changed in the bucket.
 
 Env vars:
 
-- FASTLY_API_TOKEN required, configure from secrets
-- FASTLY_URL optional, default is correct for fastly
 - ALWAYS_SOFT_PURGE optional, defaults off 1 or 0
 - DRY_RUN optional, defaults to off, 1 or 0
 - FASTLY_PURGE_TOKEN, secret purge token for connecting to fastly
-
-Deploy with something like:
-
-  SA=fastly-invalidator@arxiv-production.iam.gserviceaccount.com
-  # needs access to secret fastly-purge-token
-
-  # default compute SA
-  TRIGGER_SA=1090350072932-compute@developer.gserviceaccount.com
-
-  gcloud functions deploy purge_on_obj_change \
-   --retry --gen2 \
-   --source ./ \
-   --runtime python311  \
-   --region us-central1 \
-   --trigger-bucket arxiv-production-data \
-   --trigger-location us \
-   --trigger-service-account=$TRIGGER_SA \
-   --entry-point main \
-   --service-account $SA \
-   --set-secrets "FASTLY_API_TOKEN=fastly-purge-token:latest" \
-   --allow-unauthenticated
-
-
-
-
 
 # commands
 
@@ -42,22 +15,13 @@ to install
 and 
 ` pip install -r src/requirements-dev.txt `
 
-to set up enviroment variables
-TODO
-
-```
-export ENVIRONMENT='PRODUCTION'
-export LOG_LEVEL='INFO'
-export CLASSIC_DB_URI='SECRET_HERE'
-export FASTLY_PURGE_TOKEN='SECRET_HERE'
-```
 
 to run 
-` functions-framework --target=purge_on_bucket_change --signature-type=cloudevent `
+` functions-framework --target=main --signature-type=cloudevent `
 
 message data options:
-{"paper_id":"1008.3222", "old_categories":"Not specified"} : "eyJwYXBlcl9pZCI6IjEwMDguMzIyMiIsICJvbGRfY2F0ZWdvcmllcyI6Ik5vdCBzcGVjaWZpZWQifQ=="
-{"paper_id":"1008.3222", "old_categories":"eess.SY hep-lat"} : "eyJwYXBlcl9pZCI6IjEwMDguMzIyMiIsICJvbGRfY2F0ZWdvcmllcyI6ImVlc3MuU1kgaGVwLWxhdCJ9"
+{"bucket":"arxiv-production-data", "name":"ps_cache/arxiv/html/0712/0712.3116v1/index.html"} 
+{"bucket":"arxiv-production-data", "name":"ps_cache/cs/pdf/0005/0005003v1.pdf"} 
 
 to trigger run a curl command with a cloud event, heres an example you can use: 
 note that the data is base 64 encoded, and that return values from cloud functions seem to be useless
@@ -71,16 +35,10 @@ note that the data is base 64 encoded, and that return values from cloud functio
   -H "ce-type: google.cloud.pubsub.topic.v1.messagePublished" \
   -H "ce-source: //pubsub.googleapis.com/projects/MY-PROJECT/topics/MY-TOPIC" \
   -d '{
-        "message": {
-          "data": "eyJwYXBlcl9pZCI6IjEwMDguMzIyMiIsICJvbGRfY2F0ZWdvcmllcyI6ImVlc3MuU1kgaGVwLWxhdCJ9",
-          "attributes": {
-             "attr1":"attr1-value"
-          }
-        },
-        "subscription": "projects/MY-PROJECT/subscriptions/MY-SUB"
-      }'
+    "bucket":"arxiv-production-data", "name":"ps_cache/arxiv/html/0712/0712.3116v1/index.html"
+    }'
     
  ```
 
-to run tests (these only ensure the function in base is called correctly, actual logic lives in base)
+to run tests if any get added
 ` pytest tests `
