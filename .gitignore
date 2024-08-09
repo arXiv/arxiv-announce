@@ -165,3 +165,4 @@ cloud_functions/purge_all_for_paper/.python-version
 cloud_functions/purge_all_for_paper/src/.python-version
 cloud_functions/purge_on_obj_change/.python-version
 
+cloud_functions/purge_on_bucket_change/.python-version
