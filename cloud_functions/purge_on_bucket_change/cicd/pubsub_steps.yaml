@@ -10,6 +10,8 @@ steps:
            '--runtime', 'python311',
            '--region', '${_REGION}',
            '--trigger-bucket', '${_BUCKET_NAME}',
+           '--trigger-location', '${_TRIGGER_LOC}',
+           '--trigger-service-account', '${_TRIGGER_SA}',
            '--entry-point', '${_ENTRY_POINT}',
            '--service-account', '${_RUN_ACCOUNT}',
            '--env-vars-file', '${_ROOTDIR}/cicd/env.${_FUNCTION_NAME}.${_PROJECT_ID}.yaml',
