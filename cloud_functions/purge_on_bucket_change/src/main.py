@@ -18,6 +18,27 @@ import logging
 PS_CACHE_OLD_ID = re.compile(r'(%s)\/[^\/]*\/\d*\/(\d{2}[01]\d{4}(v\d*)?)' % f'{_archive}|{_category}')
 "EX /ps_cache/hep-ph/pdf/0511/0511005v2.pdf"
 
+def dump_logging_config():
+    logger = logging.getLogger()  # Get the root logger
+    logging_config = []
+
+    for handler in logger.handlers:
+        handler_config = {
+            'class': handler.__class__.__name__,
+            'level': logging.getLevelName(handler.level),
+            'formatter': handler.formatter._fmt if handler.formatter else None,
+            'stream': getattr(handler, 'stream', None),
+            'file_name': getattr(handler, 'baseFilename', None),
+        }
+        logging_config.append(handler_config)
+
+    # Print the logging configuration
+    for index, config in enumerate(logging_config):
+        print(f"Handler {index + 1}:")
+        for key, value in config.items():
+            print(f"  {key}: {value}")
+        print()
+
 def _paperid(name: str) -> Optional[Identifier]:
     if not name:
         return None
@@ -71,6 +92,7 @@ def invalidate_for_gs_change(bucket: str, key: str, invalidator: Invalidator) ->
 
 @functions_framework.cloud_event
 def main(cloud_event: CloudEvent) -> None:
+    dump_logging_config()
     try:
         data = cloud_event.get_data()
         bucket=data.get("bucket")
