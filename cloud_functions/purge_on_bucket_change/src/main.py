@@ -1,18 +1,16 @@
+import functions_framework
+functions_framework.setup_logging()
+import logging
 
 import re
 from typing import Optional, List
 import os
 
 from cloudevents.http import CloudEvent
-import functions_framework
 from google.api_core import retry
 
 from arxiv.identifier import Identifier, STANDARD as MODERN_ID, _archive, _category
 from arxiv.integration.fastly.purge import purge_fastly_keys
-
-
-functions_framework.setup_logging()
-import logging
 
 
 PS_CACHE_OLD_ID = re.compile(r'(%s)\/[^\/]*\/\d*\/(\d{2}[01]\d{4}(v\d*)?)' % f'{_archive}|{_category}')
