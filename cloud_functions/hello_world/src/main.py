@@ -20,6 +20,7 @@ root_h.addHandler(logging.StreamHandler())
 
 
 import functions_framework
+functions_framework.setup_logging()
 
 @functions_framework.http
 def hello_world_http(request):
