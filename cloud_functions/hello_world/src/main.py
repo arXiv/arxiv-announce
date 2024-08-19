@@ -3,6 +3,7 @@ import base64
 import logging
 import functions_framework
 from cloudevents.http import CloudEvent
+functions_framework.setup_logging()
 
 @functions_framework.http
 def hello_world_http(request):
