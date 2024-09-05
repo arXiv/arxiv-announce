@@ -2,9 +2,12 @@ import json
 import base64
 from cloudevents.http import CloudEvent
 
+# init check: which handlers, if any
 import functions_framework
-functions_framework.setup_logging()
 from functions_framework import logging
+
+print(f"Init Handlers: {logging.getLogger().handlers}")
+functions_framework.setup_logging()
 
 @functions_framework.http
 def hello_world_http(request):
