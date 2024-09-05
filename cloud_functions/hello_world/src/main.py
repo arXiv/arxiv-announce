@@ -8,12 +8,15 @@ functions_framework.setup_logging()
 
 @functions_framework.http
 def hello_world_http(request):
-    logging.info("a log")
+    handlers = logging.getLogger().handlers
+    logging.info (f"Handlers: {handlers}")
     return f"Hello world! data: {request}"
 
 @functions_framework.cloud_event
 def hello_world(cloud_event: CloudEvent):
     event_data=cloud_event.get_data()
+    handlers = logging.getLogger().handlers
+    logging.info (f"Handlers: {handlers}")
     logging.info (f"Event Data: {event_data}")
     logging.info (f"Event Attributes: {cloud_event.get_attributes()}")
 
