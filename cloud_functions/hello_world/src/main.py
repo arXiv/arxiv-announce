@@ -2,9 +2,9 @@ import json
 import base64
 from cloudevents.http import CloudEvent
 
+import logging
 import functions_framework
 functions_framework.setup_logging()
-import logging
 
 @functions_framework.http
 def hello_world_http(request):
