@@ -2,8 +2,8 @@ import json
 import base64
 from cloudevents.http import CloudEvent
 
-import logging
 import functions_framework
+from functions_framework import logging
 functions_framework.setup_logging()
 
 @functions_framework.http
