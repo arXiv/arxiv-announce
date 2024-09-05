@@ -1,14 +1,20 @@
 import json
 import base64
 from cloudevents.http import CloudEvent
-import logging
-logging.basicConfig(level=logging.INFO)
+
 import functions_framework
+functions_framework.setup_logging()
+from functions_framework import logging
 
 @functions_framework.http
 def hello_world_http(request):
     handlers = logging.getLogger().handlers
     logging.info (f"Handlers: {handlers}")
+    logging.debug(f"Debug")
+    logging.warning(f"Warning")
+    logging.error(f"Error")
+    logging.critical(f"Critical")
+    logging.exception(f"Exception")
     return f"Hello world! data: {request}"
 
 @functions_framework.cloud_event
@@ -16,6 +22,11 @@ def hello_world(cloud_event: CloudEvent):
     event_data=cloud_event.get_data()
     handlers = logging.getLogger().handlers
     logging.info (f"Handlers: {handlers}")
+    logging.debug(f"Debug")
+    logging.warning(f"Warning")
+    logging.error(f"Error")
+    logging.critical(f"Critical")
+    logging.exception(f"Exception")
     logging.info (f"Event Data: {event_data}")
     logging.info (f"Event Attributes: {cloud_event.get_attributes()}")
 
