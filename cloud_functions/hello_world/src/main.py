@@ -8,18 +8,18 @@ functions_framework.setup_logging()
 
 @functions_framework.http
 def hello_world_http(request):
-    logging.info("a log")
+    logging.warning("a log")
     return f"Hello world! data: {request}"
 
 @functions_framework.cloud_event
 def hello_world(cloud_event: CloudEvent):
     event_data=cloud_event.get_data()
-    logging.info (f"Event Data: {event_data}")
-    logging.info (f"Event Attributes: {cloud_event.get_attributes()}")
+    logging.warning(f"Event Data: {event_data}")
+    logging.warning(f"Event Attributes: {cloud_event.get_attributes()}")
 
-    logging.info (f"msg: {event_data['message']}")
+    logging.warning (f"msg: {event_data['message']}")
     data=base64.b64decode(event_data['message']['data']).decode()
-    logging.info(f"Decoded: {data}")
+    logging.warning(f"Decoded: {data}")
     info=json.loads(data)
-    logging.info(f"JSON data: {info.get('foo')}")
+    logging.warning(f"JSON data: {info.get('foo')}")
     return
