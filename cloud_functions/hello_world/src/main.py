@@ -6,7 +6,13 @@ from cloudevents.http import CloudEvent
 import functions_framework
 from functions_framework import logging
 
-print(f"Init Handlers: {logging.getLogger().handlers}")
+# sanity check: avoid "surprise" handlers.
+# Only use the 2 provided by functions_framework (stdout, stderr)
+init_logger = logging.getLogger()
+if init_logger.hasHandlers:
+    for handler in init_logger.handlers:
+        init_logger.removeHandler(handler)
+
 functions_framework.setup_logging()
 
 @functions_framework.http
