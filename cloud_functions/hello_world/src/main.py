@@ -1,29 +1,30 @@
 import json
 import base64
+
+import os
+import functions_framework
 from cloudevents.http import CloudEvent
 
-# init check: which handlers, if any
-import functions_framework
-from functions_framework import logging
+# quick and dirty override to get some logging verbosity on localhost
+if not(os.environ.get('LOG_LOCALLY')):
+    #cloud function logging setup
+    import google.cloud.logging
+    client = google.cloud.logging.Client()
+    client.setup_logging()
 
-# sanity check: avoid "surprise" handlers.
-# Only use the 2 provided by functions_framework (stdout, stderr)
-init_logger = logging.getLogger()
-if init_logger.hasHandlers:
-    for handler in init_logger.handlers:
-        init_logger.removeHandler(handler)
-
-functions_framework.setup_logging()
+import logging 
 
 @functions_framework.http
 def hello_world_http(request):
-    handlers = logging.getLogger().handlers
-    logging.info (f"Handlers: {handlers}")
-    logging.debug(f"Debug")
-    logging.warning(f"Warning")
-    logging.error(f"Error")
-    logging.critical(f"Critical")
-    logging.exception(f"Exception")
+    try:
+        handlers = logging.getLogger().handlers
+        logging.info (f"Handlers: {handlers}")
+        logging.debug(f"Debug")
+        logging.warning(f"Warning")
+        logging.error(f"Error")
+        logging.critical(f"Critical")
+    except Exception as e:
+        logging.error("Exception ", e)
     return f"Hello world! data: {request}"
 
 @functions_framework.cloud_event
