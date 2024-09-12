@@ -13,11 +13,11 @@ from cloudevents.http import CloudEvent
 from sqlalchemy.orm import aliased
 from sqlalchemy import func
 
-from arxiv.db import session
+from arxiv.db import Session
 from arxiv.db.models import Metadata, NextMail
 from arxiv.identifier import Identifier
 from arxiv.integration.fastly.purge import purge_fastly_keys
-from arxiv.taxonomy.category import get_all_cats_from_string, Archive, Category
+from arxiv.taxonomy.category import get_all_cats_from_string, Archive, Category, Group
 
 #cloud function logging setup
 handler = CloudLoggingHandler(Client())
@@ -76,9 +76,9 @@ def _get_days_announcements()-> List[Tuple[str, int, str, str, str]]:
     """
     mail= aliased(NextMail)
     meta=aliased(Metadata)
-    today=session.query(func.max(mail.mail_id)).scalar_subquery()
+    today=Session.query(func.max(mail.mail_id)).scalar_subquery()
     result = (
-        session.query(mail.paper_id, mail.version, mail.type, meta.abs_categories, mail.extra)
+        Session.query(mail.paper_id, mail.version, mail.type, meta.abs_categories, mail.extra)
         .join(meta, mail.document_id == meta.document_id)
         .filter(mail.mail_id == today)
         .filter(meta.is_current==1)
@@ -105,12 +105,12 @@ def _process_announcements(announcements:List[Tuple[str, int, str, str, str]])->
 
         elif method == "cross":
             #category data appears on lists
-            archs, cats= get_all_cats_from_string(categories)
+            groups, archs, cats= get_all_cats_from_string(categories)
             arxiv_id= Identifier(paper_id)
-            lists= lists | _all_list_keys(arxiv_id.year, arxiv_id.month, archs, cats)
+            lists= lists | _all_list_keys(arxiv_id.year, arxiv_id.month, groups, archs, cats)
 
             #clear year pages that have a new number added to their count
-            new_archs, _ = get_all_cats_from_string(extra)
+            _, new_archs, _ = get_all_cats_from_string(extra)
             for arch in new_archs:
                 lists.add(f"year-{arch.id}-{arxiv_id.year}")
         
@@ -118,26 +118,26 @@ def _process_announcements(announcements:List[Tuple[str, int, str, str, str]])->
             keys.append(f"paper-id-{paper_id}-current") #all current (versionless) pages
             keys.append(f"paper-id-{paper_id}v{version}") #all urls for the new version
 
-            archs, cats= get_all_cats_from_string(categories)
+            groups, archs, cats= get_all_cats_from_string(categories)
             arxiv_id= Identifier(paper_id)
-            lists= lists | _all_list_keys(arxiv_id.year, arxiv_id.month, archs, cats) #clear lists the paper is on
+            lists= lists | _all_list_keys(arxiv_id.year, arxiv_id.month, groups, archs, cats) #clear lists the paper is on
 
         elif method == "jref":
             #jrefs appear on lists
-            archs, cats= get_all_cats_from_string(categories)
+            groups, archs, cats= get_all_cats_from_string(categories)
             arxiv_id= Identifier(paper_id)
-            lists= lists | _all_list_keys(arxiv_id.year, arxiv_id.month, archs, cats)
+            lists= lists | _all_list_keys(arxiv_id.year, arxiv_id.month, groups, archs, cats)
 
         elif method == "wdr":
             keys.append(f"paper-id-{paper_id}v{version}") #all urls for the withdrawn version
             #withdrawl comments appear on lists
-            archs, cats= get_all_cats_from_string(categories)
+            groups, archs, cats= get_all_cats_from_string(categories)
             arxiv_id= Identifier(paper_id)
-            lists= lists | _all_list_keys(arxiv_id.year, arxiv_id.month, archs, cats)
+            lists= lists | _all_list_keys(arxiv_id.year, arxiv_id.month, groups, archs, cats)
         
     return keys + list(lists)
 
-def _all_list_keys(year: int, month: int, archs: List[Archive], cats: List[Category])->Set[str]:
+def _all_list_keys(year: int, month: int, groups: List[Group], archs: List[Archive], cats: List[Category])->Set[str]:
     """generates a set of all list pages a paper would be on given its year, month and categories"""
     lists=set()
     for cat in cats:
@@ -146,4 +146,7 @@ def _all_list_keys(year: int, month: int, archs: List[Archive], cats: List[Categ
     for arch in archs:
         lists.add(f"list-{year:04d}-{arch.id}") #paper also present on archive pages
         lists.add(f"list-{year:04d}-{month:02d}-{arch.id}") 
+    for group in groups: #catchup filters by and tags for the physics group
+        if group.id=='grp_physics':
+            lists.add(f"list-{year:04d}-{month:02d}-{group.id}") 
     return lists
