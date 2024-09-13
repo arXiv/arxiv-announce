@@ -87,6 +87,7 @@ class TestProcessAnnouncements(unittest.TestCase):
         "list-2011-04-hep-lat","list-2011-hep-lat", 
         "list-2011-04-astro-ph.SR", "list-2011-astro-ph.SR", 
         "list-2011-04-astro-ph", "list-2011-astro-ph",
+        "list-2011-04-grp_physics",
         "abs-1104.1734", 
         "list-2011-04-math.NA","list-2011-math.NA",
         "list-2011-04-math","list-2011-math",  
@@ -99,6 +100,7 @@ class TestProcessAnnouncements(unittest.TestCase):
         "abs-0904.1234", "paper-id-0904.1234-current", "paper-id-0904.1234v3",
         "abs-1104.1284", "paper-id-1104.1284-current", "paper-id-1104.1284v7",
         "list-2009-04-hep-lat","list-2009-hep-lat",
+        "list-2009-04-grp_physics", "list-2011-04-grp_physics",
         "list-2009-04-astro-ph.SR","list-2009-astro-ph.SR",
         "list-2009-04-astro-ph","list-2009-astro-ph",
         "list-2011-04-hep-lat","list-2011-hep-lat"
