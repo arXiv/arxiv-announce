@@ -1,6 +1,6 @@
 # running locally
 enable local logging
-export LOG_LOCALLY =True
+export LOG_LOCALLY=True
 
 for http driven functions:
 to run your cloud function, run this in the src directory and name your target function
