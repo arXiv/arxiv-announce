@@ -3,6 +3,7 @@ it gets triggered with a message that looks like '{"event":"announcement_complet
 
 
 run the function locally:
+export LOG_LOCALLY=True
 need to set CLASSIC_DB_URI and FASTLY_PURGE_TOKEN if you want to actually purge something
 
 run this in src folder

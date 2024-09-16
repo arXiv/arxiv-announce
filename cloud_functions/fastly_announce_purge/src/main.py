@@ -3,10 +3,6 @@ import base64
 import os
 from typing import List, Tuple, Set
 
-import logging
-from google.cloud.logging import Client
-from google.cloud.logging.handlers import CloudLoggingHandler
-
 import functions_framework
 from cloudevents.http import CloudEvent
 
@@ -19,14 +15,16 @@ from arxiv.identifier import Identifier
 from arxiv.integration.fastly.purge import purge_fastly_keys
 from arxiv.taxonomy.category import get_all_cats_from_string, Archive, Category, Group
 
-#cloud function logging setup
-handler = CloudLoggingHandler(Client())
-functions_framework.setup_logging()
-logger = logging.getLogger(__name__)
+#logging setup
+if not(os.environ.get('LOG_LOCALLY')):
+    import google.cloud.logging
+    client = google.cloud.logging.Client()
+    client.setup_logging()
+
+import logging 
 log_level_str = os.getenv('LOG_LEVEL', 'INFO')
 log_level = getattr(logging, log_level_str.upper(), logging.INFO)
-logger.setLevel(log_level)
-logger.addHandler(handler)
+logging.basicConfig(level=log_level)
 
 @functions_framework.cloud_event
 def purge_for_announce(cloud_event: CloudEvent):
@@ -46,12 +44,12 @@ def purge_for_announce(cloud_event: CloudEvent):
             purge_fastly_keys("announce")
             purge_fastly_keys("announce","rss.arxiv.org")
             #purge_fastly_keys("announce","export.arxiv.org") #not currently live from fastly
-            logger.info("Purged announcement key for production")
+            logging.info("Purged announcement key for production")
         elif environment == "DEVELOPMENT":
             purge_fastly_keys("announce", "browse.dev.arxiv.org")
-            logger.info("Purged announcement key for development")
+            logging.info("Purged announcement key for development")
         else:
-            logger.warning(f"Announcement event caught, but no environment to purge cache. ENVIRONMENT: {environment}")
+            logging.warning(f"Announcement event caught, but no environment to purge cache. ENVIRONMENT: {environment}")
 
 
 def _purge_announced_papers():
@@ -67,7 +65,7 @@ def _purge_announced_papers():
     elif environment == "DEVELOPMENT":
         purge_fastly_keys(keys, "browse.dev.arxiv.org")
     elif environment == "TESTING":
-        logger.info(f"In TESTING enviroment. Would have purged keys {len(keys)}: {keys}\nAbove keys ({len(keys)}) not purged, in TESTING enviroment.")
+        logging.info(f"In TESTING enviroment. Would have purged keys {len(keys)}: {keys}\nAbove keys ({len(keys)}) not purged, in TESTING enviroment.")
     return
 
 def _get_days_announcements()-> List[Tuple[str, int, str, str, str]]:
