@@ -17,6 +17,8 @@ and
 
 
 to run 
+export LOG_LOCALLY=True
+
 ` functions-framework --target=main --signature-type=cloudevent `
 
 message data options:
