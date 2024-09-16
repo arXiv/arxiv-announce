@@ -1,4 +1,4 @@
-functions-framework
-arxiv-base @ git+https://github.com/arXiv/arxiv-base.git@208295b6ae33c3e6b9db20298c80e8c27cf95d56#egg=arxiv_base
+functions-framework==3.*
+arxiv-base @ git+https://github.com/arXiv/arxiv-base.git@fa04631#egg=arxiv_base
 google-cloud-logging
 google.api_core
