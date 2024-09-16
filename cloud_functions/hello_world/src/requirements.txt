@@ -1,2 +1,2 @@
-functions-framework
-
+functions-framework==3.*
+google-cloud-logging
