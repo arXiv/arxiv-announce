@@ -13,6 +13,7 @@ and
 to set up enviroment variables
 
 ```
+export LOG_LOCALLY=True
 export ENVIRONMENT='PRODUCTION'
 export LOG_LEVEL='INFO'
 export CLASSIC_DB_URI='SECRET_HERE'
