@@ -17,11 +17,11 @@ and
 
 
 to run 
-export LOG_LOCALLY=True
+    export LOG_LOCALLY=True
 
 ` functions-framework --target=main --signature-type=cloudevent `
 
-message data options:
+message data examples:
 {"bucket":"arxiv-production-data", "name":"ps_cache/arxiv/html/0712/0712.3116v1/index.html"} 
 {"bucket":"arxiv-production-data", "name":"ps_cache/cs/pdf/0005/0005003v1.pdf"} 
 
@@ -42,5 +42,5 @@ note that the data is base 64 encoded, and that return values from cloud functio
     
  ```
 
-to run tests if any get added
+# tests
 ` pytest tests `
