@@ -54,3 +54,19 @@ def test_invalidate_keys():
     assert sorted(expected)==sorted(actual)
     mock_invalidator.reset_mock()
     
+def test_ignored_files():
+    mock_invalidator = Mock()
+
+    #some other path
+    path="ps_cache/cs/ps/0005/0005003v1.ps.gz"
+    invalidate_for_gs_change("bucket", path, mock_invalidator)
+    mock_invalidator.invalidate.assert_not_called()
+
+    #ignored files
+    path="ps_cache/arxiv/html/0712/0712.3116v1/LaTeXML.cache"
+    invalidate_for_gs_change("bucket", path, mock_invalidator)
+    mock_invalidator.invalidate.assert_not_called()
+
+    path="ps_cache/cs/pdf/0005/0005003v1.outcome.tar.gz"
+    invalidate_for_gs_change("bucket", path, mock_invalidator)
+    mock_invalidator.invalidate.assert_not_called()
