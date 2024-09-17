@@ -55,7 +55,7 @@ def invalidate_for_gs_change(bucket: str, key: str, invalidator: Invalidator) ->
         logging.debug(f"No purge: gs://{bucket}/{key} not related to an arxiv paper id")
         return
     
-    if "/pdf/" in key:
+    if "/pdf/" in key and key.endswith('.pdf'):
         path="pdf"
     elif '/html/' in key:
         path="html"
