@@ -22,6 +22,8 @@ logging.basicConfig(level=log_level)
 PS_CACHE_OLD_ID = re.compile(r'(%s)\/[^\/]*\/\d*\/(\d{2}[01]\d{4}(v\d*)?)' % f'{_archive}|{_category}')
 "EX /ps_cache/hep-ph/pdf/0511/0511005v2.pdf"
 
+FILES_TO_IGNORE=['outcome.tar.gz','LaTeXML.cache','__stdout.txt']
+
 def _paperid(name: str) -> Optional[Identifier]:
     if not name:
         return None
@@ -50,15 +52,19 @@ def invalidate_for_gs_change(bucket: str, key: str, invalidator: Invalidator) ->
     #find what to purge
     paper_id = _paperid(key)
     if not paper_id:
-        logging.info(f"No purge: gs://{bucket}/{key} not related to an arxiv paper id")
+        logging.debug(f"No purge: gs://{bucket}/{key} not related to an arxiv paper id")
         return
     
-    if "/pdf/" in key:
+    if "/pdf/" in key and key.endswith('.pdf'):
         path="pdf"
     elif '/html/' in key:
         path="html"
     else:
-        logging.info(f"No purge: gs://{bucket}/{key} not an html or pdf path")
+        logging.debug(f"No purge: gs://{bucket}/{key} not an html or pdf path")
+        return
+    
+    if any(ignored in key for ignored in FILES_TO_IGNORE):
+        logging.debug(f"No purge for ignored file type: gs://{bucket}/{key}")
         return
     
     purge_keys=[f'{path}-{paper_id.id}-current', f'{path}-{paper_id.idv}'] #always purge current just to be sure
