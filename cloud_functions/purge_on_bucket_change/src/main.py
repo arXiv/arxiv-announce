@@ -43,10 +43,7 @@ class Invalidator:
             logging.info(f"DRY_RUN: Would have purged keys: {keys} soft purge: {soft_purge}")
             return
 
-        if self.always_soft_purge or soft_purge:
-            purge_fastly_keys(keys, soft_purge=True)
-        else:
-            purge_fastly_keys(keys, soft_purge=False)
+        purge_fastly_keys(keys, soft_purge=(self.always_soft_purge or soft_purge))
 
 
 def invalidate_for_gs_change(bucket: str, key: str, invalidator: Invalidator) -> None:
@@ -65,7 +62,7 @@ def invalidate_for_gs_change(bucket: str, key: str, invalidator: Invalidator) ->
         return
     
     purge_keys=[f'{path}-{paper_id.id}-current', f'{path}-{paper_id.idv}'] #always purge current just to be sure
-    
+    logging.info(f"attempting purge keys: {purge_keys} for location: {key} in bucket: {bucket}")
     #perform purge
     try:
         invalidator.invalidate(purge_keys)
