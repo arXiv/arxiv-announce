@@ -49,27 +49,26 @@ class Invalidator:
 
 
 def invalidate_for_gs_change(bucket: str, key: str, invalidator: Invalidator) -> None:
-    #find what to purge
-    paper_id = _paperid(key)
-    if not paper_id:
-        logging.debug(f"No purge: gs://{bucket}/{key} not related to an arxiv paper id")
+    if any(ignored in key for ignored in FILES_TO_IGNORE):
+        logging.debug(f"No purge for ignored file type: gs://{bucket}/{key}")
         return
-    
-    if "/pdf/" in key and key.endswith('.pdf'):
-        path="pdf"
-    elif '/html/' in key:
+
+    if '/html/' in key: #native html files
         path="html"
+    elif key.endswith('.pdf'): #processed pdfs, as well as source pdfs 
+        path="pdf"
     else:
         logging.debug(f"No purge: gs://{bucket}/{key} not an html or pdf path")
         return
     
-    if any(ignored in key for ignored in FILES_TO_IGNORE):
-        logging.debug(f"No purge for ignored file type: gs://{bucket}/{key}")
+    paper_id = _paperid(key)
+    if not paper_id:
+        logging.debug(f"No purge: gs://{bucket}/{key} not related to an arxiv paper id")
         return
-    
+     
     purge_keys=[f'{path}-{paper_id.id}-current', f'{path}-{paper_id.idv}'] #always purge current just to be sure
     logging.info(f"attempting purge keys: {purge_keys} for location: {key} in bucket: {bucket}")
-    #perform purge
+   
     try:
         invalidator.invalidate(purge_keys)
     except Exception as exc:
