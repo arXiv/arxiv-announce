@@ -6,6 +6,7 @@ Env vars:
 
 - ALWAYS_SOFT_PURGE optional, defaults off 1 or 0
 - DRY_RUN optional, defaults to off, 1 or 0
+- LATEXML_BUCKET, name of the bucket where html conversions are stored
 - FASTLY_PURGE_TOKEN, secret purge token for connecting to fastly
 
 # commands
