@@ -53,7 +53,8 @@ def invalidate_for_gs_change(bucket: str, key: str, invalidator: Invalidator) ->
         logging.debug(f"No purge for ignored file type: gs://{bucket}/{key}")
         return
     
-    if bucket=="latexml_document_conversions":
+    latexml_bucket=os.environ.get('LATEXML_BUCKET', "latexml_document_conversions")
+    if bucket==latexml_bucket:
         path="html"
     elif "/pdf/" in key and key.endswith('.pdf'):
         path="pdf"
