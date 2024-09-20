@@ -54,6 +54,22 @@ def test_invalidate_keys():
     assert sorted(expected)==sorted(actual)
     mock_invalidator.reset_mock()
 
+    # /ftp/ pdf path
+    path="ftp/arxiv/papers/2409/2409.10823.pdf"
+    invalidate_for_gs_change("bucket", path, mock_invalidator)
+    expected=["pdf-2409.10823", "pdf-2409.10823-current"]
+    actual=mock_invalidator.invalidate.call_args[0][0]
+    assert sorted(expected)==sorted(actual)
+    mock_invalidator.reset_mock()
+
+    # /orig/ pdf path
+    path="orig/arxiv/papers/2409/2409.10823v1.pdf"
+    invalidate_for_gs_change("bucket", path, mock_invalidator)
+    expected=["pdf-2409.10823v1", "pdf-2409.10823-current"]
+    actual=mock_invalidator.invalidate.call_args[0][0]
+    assert sorted(expected)==sorted(actual)
+    mock_invalidator.reset_mock()
+
     #old ids
     path="ps_cache/cs/pdf/0005/0005003v1.pdf"
     invalidate_for_gs_change("bucket", path, mock_invalidator)
