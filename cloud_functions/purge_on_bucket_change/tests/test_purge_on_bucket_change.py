@@ -38,6 +38,14 @@ def test_invalidate_keys():
     assert sorted(expected)==sorted(actual)
     mock_invalidator.reset_mock()
 
+    #latexml bucket
+    path="0802.3414v4/0802.3414v4.html"
+    invalidate_for_gs_change("latexml_document_conversions", path, mock_invalidator)
+    expected=["html-0802.3414v4", "html-0802.3414-current"]
+    actual=mock_invalidator.invalidate.call_args[0][0]
+    assert sorted(expected)==sorted(actual)
+    mock_invalidator.reset_mock()
+
     #pdf path
     path="ps_cache/cs/pdf/0712/0712.3116v2.pdf"
     invalidate_for_gs_change("bucket", path, mock_invalidator)
