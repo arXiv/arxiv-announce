@@ -71,7 +71,7 @@ def invalidate_for_gs_change(bucket: str, key: str, invalidator: Invalidator) ->
         logging.debug(f"No purge: gs://{bucket}/{key} not related to an arxiv paper id")
         return
      
-    purge_keys=[f'{path}-{paper_id.id}-current', f'{path}-{paper_id.idv}'] #always purge current just to be sure
+    purge_keys=[f'{path}-{paper_id.id}-current', f'{path}-{paper_id.idv}', f'unavailable-{paper_id.id}-current', f'unavailable-{paper_id.idv}'] #always purge current just to be sure
     logging.info(f"attempting purge keys: {purge_keys} for location: {key} in bucket: {bucket}")
    
     try:
