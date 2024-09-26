@@ -25,7 +25,7 @@ def test_invalidate_keys():
     #basic
     path="ps_cache/arxiv/html/0712/0712.3116v1/index.html"
     invalidate_for_gs_change("bucket", path, mock_invalidator)
-    expected=["html-0712.3116v1", "html-0712.3116-current"]
+    expected=["html-0712.3116v1", "html-0712.3116-current", "unavailable-0712.3116v1", "unavailable-0712.3116-current"]
     actual=mock_invalidator.invalidate.call_args[0][0]
     assert sorted(expected)==sorted(actual)
     mock_invalidator.reset_mock()
@@ -33,7 +33,7 @@ def test_invalidate_keys():
     #weird html files
     path="ps_cache/arxiv/html/0712/0712.3116v5/fancy.png"
     invalidate_for_gs_change("bucket", path, mock_invalidator)
-    expected=["html-0712.3116v5", "html-0712.3116-current"]
+    expected=["html-0712.3116v5", "html-0712.3116-current", "unavailable-0712.3116v5", "unavailable-0712.3116-current"]
     actual=mock_invalidator.invalidate.call_args[0][0]
     assert sorted(expected)==sorted(actual)
     mock_invalidator.reset_mock()
@@ -41,7 +41,7 @@ def test_invalidate_keys():
     #latexml bucket
     path="0802.3414v4/0802.3414v4.html"
     invalidate_for_gs_change("latexml_document_conversions", path, mock_invalidator)
-    expected=["html-0802.3414v4", "html-0802.3414-current"]
+    expected=["html-0802.3414v4", "html-0802.3414-current", "unavailable-0802.3414v4", "unavailable-0802.3414-current"]
     actual=mock_invalidator.invalidate.call_args[0][0]
     assert sorted(expected)==sorted(actual)
     mock_invalidator.reset_mock()
@@ -49,7 +49,7 @@ def test_invalidate_keys():
     #pdf path
     path="ps_cache/cs/pdf/0712/0712.3116v2.pdf"
     invalidate_for_gs_change("bucket", path, mock_invalidator)
-    expected=["pdf-0712.3116v2", "pdf-0712.3116-current"]
+    expected=["pdf-0712.3116v2", "pdf-0712.3116-current", "unavailable-0712.3116v2", "unavailable-0712.3116-current"]
     actual=mock_invalidator.invalidate.call_args[0][0]
     assert sorted(expected)==sorted(actual)
     mock_invalidator.reset_mock()
@@ -57,7 +57,7 @@ def test_invalidate_keys():
     # /ftp/ pdf path
     path="ftp/arxiv/papers/2409/2409.10823.pdf"
     invalidate_for_gs_change("bucket", path, mock_invalidator)
-    expected=["pdf-2409.10823", "pdf-2409.10823-current"]
+    expected=["pdf-2409.10823", "pdf-2409.10823-current", "unavailable-2409.10823", "unavailable-2409.10823-current"]
     actual=mock_invalidator.invalidate.call_args[0][0]
     assert sorted(expected)==sorted(actual)
     mock_invalidator.reset_mock()
@@ -65,7 +65,7 @@ def test_invalidate_keys():
     # /orig/ pdf path
     path="orig/arxiv/papers/2409/2409.10823v1.pdf"
     invalidate_for_gs_change("bucket", path, mock_invalidator)
-    expected=["pdf-2409.10823v1", "pdf-2409.10823-current"]
+    expected=["pdf-2409.10823v1", "pdf-2409.10823-current", "unavailable-2409.10823v1", "unavailable-2409.10823-current"]
     actual=mock_invalidator.invalidate.call_args[0][0]
     assert sorted(expected)==sorted(actual)
     mock_invalidator.reset_mock()
@@ -73,7 +73,7 @@ def test_invalidate_keys():
     #old ids
     path="ps_cache/cs/pdf/0005/0005003v1.pdf"
     invalidate_for_gs_change("bucket", path, mock_invalidator)
-    expected=["pdf-cs/0005003v1", "pdf-cs/0005003-current"]
+    expected=["pdf-cs/0005003v1", "pdf-cs/0005003-current", "unavailable-cs/0005003v1", "unavailable-cs/0005003-current"]
     actual=mock_invalidator.invalidate.call_args[0][0]
     assert sorted(expected)==sorted(actual)
     mock_invalidator.reset_mock()
