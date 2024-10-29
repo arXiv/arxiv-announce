@@ -76,8 +76,9 @@ def invalidate_for_gs_change(bucket: str, key: str, invalidator: Invalidator) ->
    
     try:
         invalidator.invalidate(purge_keys)
-    except Exception as exc:
-        logging.error(f"Purge failed: {purge_keys} failed {exc}")
+    except Exception as ex:
+        logging.error(f"Purge failed: {purge_keys} failed {ex}")
+        raise ex
 
 
 @functions_framework.cloud_event
