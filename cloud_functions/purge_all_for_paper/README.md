@@ -10,6 +10,9 @@ to install
 and 
 ` pip install -r src/requirements-dev.txt `
 
+if you wish to change versions of base locally you must uninstall it before installing dependencies
+` pip uninstall arxiv-base`
+
 to set up enviroment variables
 
 ```
