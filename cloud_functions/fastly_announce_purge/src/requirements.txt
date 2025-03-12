@@ -1,5 +1,5 @@
 functions-framework==3.*
-arxiv-base @ git+https://github.com/arXiv/arxiv-base.git@fa04631#egg=arxiv_base
+arxiv-base @ git+https://github.com/arXiv/arxiv-base.git@8d74929e71523029c57498400c310a14309a4019#egg=arxiv_base
 google-cloud-logging
 sqlalchemy>=2.0.26
 mysqlclient >=2.1
