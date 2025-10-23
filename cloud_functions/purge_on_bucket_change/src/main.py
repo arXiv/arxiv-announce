@@ -62,16 +62,20 @@ def invalidate_for_gs_change(bucket: str, key: str, invalidator: Invalidator) ->
         path="html"
     elif key.endswith('.pdf'): #processed pdfs, as well as source pdfs 
         path="pdf"
+    elif ("/orig/" in key or "/ftp/" in key) and key.endswith('.gz'):
+        path="src" # anc paths also have the src key
     else:
-        logging.debug(f"No purge: gs://{bucket}/{key} not an html or pdf path")
+        logging.debug(f"No purge: gs://{bucket}/{key} not an latexml, html, source or pdf path")
         return
     
     paper_id = _paperid(key)
     if not paper_id:
         logging.debug(f"No purge: gs://{bucket}/{key} not related to an arxiv paper id")
         return
-     
-    purge_keys=[f'{path}-{paper_id.id}-current', f'{path}-{paper_id.idv}', f'unavailable-{paper_id.id}-current', f'unavailable-{paper_id.idv}'] #always purge current just to be sure
+
+    #always purge current just to be sure
+    purge_keys=[f'{path}-{paper_id.id}-current', f'{path}-{paper_id.idv}',
+                f'unavailable-{paper_id.id}-current', f'unavailable-{paper_id.idv}']
     logging.info(f"attempting purge keys: {purge_keys} for location: {key} in bucket: {bucket}")
    
     try:
